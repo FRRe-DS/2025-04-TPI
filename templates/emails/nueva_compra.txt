@@ -1,0 +1,8 @@
+Hola {{ usuario }},
+
+Hemos recibido tu compra #{{ pedido.id }} por un total de ${{ total }}.
+Nuestro equipo comenzará a preparar tu pedido para enviarlo lo antes posible.
+
+Gracias por confiar en nosotros.
+
+{{ site_url }}

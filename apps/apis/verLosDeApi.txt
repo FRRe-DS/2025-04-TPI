@@ -1,0 +1,17 @@
+tambien segun el open api necesitamos impelmentar las siguientes funcionalidades: 
+
+  /api/booking/{id}:
+    put:
+      tags: [Compras ↔ Stock]
+      summary: Vincular pedido a reserva
+      description: Endpoint que Backend Compras ofrece a Backend Stock
+
+
+  /api/tracking/{id}:
+    put:
+      tags: [Compras ↔ Logística]
+      summary: Vincular pedido al envío
+      description: Endpoint que Backend Compras ofrece a Backend Logística
+
+
+(el jefe de proyecto no le gusta nada esos Endpoint puesto que la vinculacion se tendria que hacer a la hora de crear el envio y reserva correspondientemente. no arbitrariamente despues de eso.)

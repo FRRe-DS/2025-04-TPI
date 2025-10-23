@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load socialaccount %}
+
+{% block title %}Login/Registro - MF Software{% endblock %}
+
+{% block extra_head %}
+  <!-- Fuente e íconos -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Estilos del login -->
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="page">
+  <section class="card">
+    
+    <!-- Rail izquierda con testimonio -->
+    <aside class="rail" aria-label="Testimonio visual">
+      <img src="{% static 'imagenes/hero.jpg' %}" alt="Persona sonriendo con laptop" class="rail-photo" />
+      <div class="rail-gradient"></div>
+      <div class="rail-content">
+        <div class="brand">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <circle cx="12" cy="12" r="12" fill="#6B5CFF"></circle>
+            <circle cx="12" cy="12" r="6" fill="#FFFFFF"></circle>
+          </svg>
+          <span class="brand-name">MF Software</span>
+        </div>
+        <blockquote class="quote">“Simplemente todas las herramientas que mi equipo y yo necesitamos.”</blockquote>
+        <p class="author">
+          <span class="name">Karen Yue</span><br/>
+          <span class="role">Director de Marketing Digital</span>
+        </p>
+      </div>
+    </aside>
+
+    <!-- Panel derecho con formulario -->
+    <section class="form-pane">
+      <header class="form-header">
+        <h1>Bienvenido de nuevo</h1>
+        <p class="sub">Inicia sesión en tu cuenta para continuar.</p>
+      </header>
+
+      <!-- Formulario de Login -->
+      <form class="form" action="{% url 'login' %}" method="post" novalidate>
+        {% csrf_token %}
+        <label class="field">
+          <span class="label">Email</span>
+          <input type="email" name="gmail" placeholder="tuemail@gmail.com" required>
+        </label>
+
+        <label class="field">
+          <span class="label">Contraseña</span>
+          <input type="password" name="contraseña" placeholder="••••••••" minlength="6" required>
+        </label>
+
+        <div class="row between">
+          <a class="link" href="#" aria-label="Olvidaste tu contraseña">¿Olvidaste tu contraseña?</a>
+        </div>
+
+        <button class="btn primary" type="submit">Iniciar sesión</button>
+
+        <div class="divider">
+          <span>O</span>
+        </div>
+
+        <a href="{% provider_login_url 'google' next='' %}" class="btn google">
+          <img src="{% static 'imagenes/google-icon.svg' %}" alt="Google" />
+          Continuar con Google
+        </a>
+
+        <p class="signup">¿No tienes una cuenta? 
+          <a class="link" href="{% url 'registro' %}">Regístrate</a>
+        </p>
+      </form>
+    </section>
+  </section>
+</main>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/pedidos_styles.css' %}">
+{% endblock %}
+
+{% block title %}Mis Pedidos{% endblock %}
+
+{% block content %}
+<div class="pedidos-container">
+    <h1 class="pedidos-titulo">Mis Pedidos</h1>
+
+    {% if pedidos %}
+        <div class="pedidos-lista">
+            {% for pedido in pedidos %}
+            <div class="pedido-card">
+                <div class="pedido-header">
+                    <div class="pedido-info">
+                        <span class="pedido-id">Pedido #{{ pedido.id }}</span>
+                        <span class="pedido-fecha">Realizado el: {{ pedido.fecha }}</span>
+                    </div>
+                    <div class="pedido-estado">
+                        <span class="badge estado-{{ pedido.estado }}">{{ pedido.estado_display }}</span>
+                    </div>
+                </div>
+                <div class="pedido-body">
+                    <div class="pedido-direccion">
+                        <strong>Dirección de Envío:</strong> {{ pedido.direccion_envio }}
+                    </div>
+                    <div class="items-section">
+                        <h4 class="items-titulo">Productos</h4>
+                        <ul class="pedido-items">
+                            {% for item in pedido.items %}
+                            <li class="pedido-item-line">
+                                <span>{{ item.nombre }} (x{{ item.cantidad }})</span>
+                                <span class="item-subtotal">${{ item.subtotal|floatformat:2 }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                <div class="pedido-footer">
+                    <span class="pedido-total">Total: ${{ pedido.total|floatformat:2 }}</span>
+                    {% if pedido.puede_cancelar %}
+                    <button class="btn-cancelar">Cancelar Pedido</button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="no-pedidos">
+            <p>Aún no has realizado ningún pedido.</p>
+            <a href="{% url 'inicio' %}" class="btn-primario">Explorar catálogo</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,19 @@
+# Saco el entorno virtual
+/venv/
+/media/
+/pruebas/
+/prueba/
+
+
+*.sqlite3
+*.pyc
+__pycache__/
+# entornos virtuales
+.venv/
+venv/
+ENV/
+.venvee/
+
+logs/*.log
+logs/*.log.*
+logs/*.gz

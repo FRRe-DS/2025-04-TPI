@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tu Pedido #1024 ha sido Enviado</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f1f3f8;
+        }
+        table {
+            border-collapse: collapse;
+        }
+        .main-container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .header-container {
+            position: relative;
+            /* Verde de éxito para el header */
+            background-color: #28a745; 
+            overflow: hidden;
+            color: #ffffff;
+        }
+        .header-content {
+            padding: 30px 40px;
+            padding-bottom: 60px;
+        }
+        .header-curve {
+            position: absolute;
+            bottom: -80px;
+            left: -10%;
+            width: 120%;
+            height: 120px;
+            background-color: #ffffff;
+            border-radius: 50%;
+        }
+        .company-logo-cell {
+            width: 50px;
+            vertical-align: middle;
+        }
+        .company-logo-img {
+            width: 50px;
+            height: auto;
+            vertical-align: middle;
+            filter: brightness(0) invert(1); /* Pasa el logo a blanco para contraste */
+        }
+        .company-name {
+            font-size: 24px;
+            font-weight: bold;
+            padding-left: 15px;
+            vertical-align: middle;
+            color: #ffffff;
+        }
+        .receipt-details {
+            font-size: 14px;
+            color: #e9ecef;
+            text-align: right;
+            vertical-align: middle;
+        }
+        .greeting-section {
+            padding-top: 30px;
+        }
+        .greeting-section h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: bold;
+            color: #ffffff;
+        }
+        .greeting-section p {
+            margin: 8px 0 0;
+            font-size: 16px;
+            color: #e9ecef;
+            line-height: 1.5;
+        }
+        .content {
+            padding: 30px 40px 0 40px;
+        }
+        .tracking-section, .shipping-section {
+            width: 100%;
+            padding: 20px 0;
+            border-top: 1px solid #eaeaea;
+        }
+        .tracking-section h3, .shipping-section h3 {
+            margin: 0 0 15px 0;
+            font-size: 16px;
+            color: #333;
+            font-weight: 600;
+        }
+        .icon-cell {
+            width: 50px;
+            vertical-align: top;
+        }
+        .info-cell {
+            vertical-align: middle;
+            padding-left: 15px;
+        }
+        .info-cell p {
+             margin: 0;
+             font-size: 14px;
+             color: #555;
+             line-height: 1.5;
+        }
+        .info-cell .label {
+            font-size: 16px;
+            color: #333;
+            font-weight: 500;
+            margin: 0;
+        }
+        .info-cell .value {
+            font-size: 14px;
+            color: #555;
+            margin: 4px 0 0 0;
+        }
+        .cta-section {
+            padding: 30px 40px;
+        }
+        /* Botón primario */
+        .button {
+            display: block;
+            width: 100%;
+            background-color: #28a745;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .button a {
+            display: block;
+            padding: 15px;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        /* Botón secundario como en la foto */
+        .button-secondary {
+            display: block;
+            width: 100%;
+            background-color: #ffffff;
+            border: 1px solid #cccccc;
+
+            text-align: center;
+            margin-top: 15px; /* Espacio entre botones */
+        }
+        .button-secondary a {
+            display: block;
+            padding: 15px;
+            color: #333333;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color: #f1f3f8; padding: 20px 0;">
+        <tr>
+            <td align="center">
+                <table class="main-container" border="0" cellpadding="0" cellspacing="0">
+                    <tr>
+                        <td class="header-container">
+                            <div class="header-content">
+                                <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td width="70%">
+                                            <table border="0" cellpadding="0" cellspacing="0">
+                                                <tr>
+                                                    <td class="company-logo-cell">
+                                                        <img src="../../static/imagenes/logo.png" alt="Logo MF Tienda" class="company-logo-img">
+                                                    </td>
+                                                    <td class="company-name">
+                                                        MF Tienda
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                        <td width="30%" class="receipt-details">
+                                            12 de Agosto de 2025
+                                        </td>
+                                    </tr>
+                                </table>
+
+                                <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td class="greeting-section">
+                                            <h1>¡Tu pedido está en camino!</h1>
+                                            <p>Hola Maximo, tu pedido <strong>#1024</strong> ha sido entregado al correo y pronto llegará a tu puerta.</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="header-curve"></div>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>
+                            <div class="content">
+                                
+                                <div class="tracking-section">
+                                    <h3>Información de Seguimiento</h3>
+                                    <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td class="icon-cell">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #555;"><path d="M13 17.5V13.7a1.9 1.9 0 0 0-3.8 0V17.5"/><path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z"/><path d="M8 12h8"/></svg>
+                                            </td>
+                                            <td class="info-cell">
+                                                <p class="label">Correo Argentino</p>
+                                                <p class="value">Nº: 162784391123456789</p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                
+                                <div class="shipping-section">
+                                    <h3>Enviado a</h3>
+                                    <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td class="icon-cell">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #555;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                                            </td>
+                                            <td class="info-cell">
+                                                <p>
+                                                    <strong>Maximo González</strong><br>
+                                                    Av. Corrientes 1234, Piso 5, Depto A<br>
+                                                    Buenos Aires, C1043AAS<br>
+                                                    Argentina
+                                                </p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td class="cta-section">
+                            <table class="button" border="0" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td>
+                                        <a href="https://www.correoargentino.com.ar/formularios/e-commerce/162784391123456789">
+                                            Rastrear mi paquete
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                            <table class="button-secondary" border="0" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td>
+                                        <a href="https://www.tutienda.com/factura/1024">
+                                            Descargar Factura
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

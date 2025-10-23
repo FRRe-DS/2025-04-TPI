@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmación de tu Pedido #1024</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin-top: 30px;
+            margin-bottom: 30px;
+            padding: 0;
+            background-color: #f1f3f8;
+        }
+        table {
+            border-collapse: collapse;
+        }
+        .main-container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .header-container {
+            position: relative;
+            background-color: #eef2ff;
+            overflow: hidden;
+        }
+        .header-content {
+            padding: 30px 40px;
+
+        }
+        
+        /* Header curve 
+        .header-curve {
+            position: absolute;
+            bottom: -80px;
+            left: -10%;
+            width: 120%;
+            height: 120px;
+            background-color: #ffffff;
+            border-radius: 50%;
+        }*/
+        .company-logo-cell {
+            width: 50px;
+            vertical-align: middle;
+        }
+        .company-logo-img {
+            width: 50px;
+            height: auto;
+            vertical-align: middle;
+        }
+        .company-name {
+            font-size: 24px;
+            font-weight: bold;
+            padding-left: 15px;
+            vertical-align: middle;
+            color: #1c1c1e;
+        }
+        .receipt-details {
+            font-size: 14px;
+            color: #3f3f46;
+            text-align: right;
+            vertical-align: middle;
+        }
+        .greeting-section {
+            padding-top: 30px;
+        }
+        .greeting-section h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: bold;
+            color: #000000;
+        }
+        .greeting-section p {
+            margin: 8px 0 0;
+            font-size: 16px;
+            color: #3f3f46;
+            line-height: 1.5;
+        }
+        .content {
+            padding: 30px 40px 0 40px;
+        }
+        .total-section {
+            display: block;
+            width: 100%;
+            padding-bottom: 20px;
+        }
+        .total-section h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: normal;
+            color: #111;
+            float: left;
+        }
+        .total-section .price {
+            margin: 0;
+            font-size: 32px;
+            font-weight: bold;
+            color: #111;
+            float: right;
+        }
+        .details-table {
+            width: 100%;
+            padding: 20px 0;
+            border-top: 1px solid #eaeaea;
+        }
+        .details-table td {
+            padding: 10px 0;
+            font-size: 16px;
+            color: #333;
+        }
+        .details-table .label {
+            text-align: left;
+        }
+        .details-table .value {
+            text-align: right;
+            font-weight: 500;
+        }
+        .payment-section, .shipping-section {
+            width: 100%;
+            padding: 20px 0;
+            border-top: 1px solid #eaeaea;
+        }
+        .payment-section h3, .shipping-section h3 {
+            margin: 0 0 15px 0;
+            font-size: 16px;
+            color: #333;
+            font-weight: 600;
+        }
+        .payment-icon-cell, .shipping-icon-cell {
+            width: 50px;
+            vertical-align: top;
+        }
+        .payment-info-cell, .shipping-info-cell {
+            vertical-align: middle;
+            padding-left: 15px;
+        }
+        .payment-name, .shipping-address p {
+            font-size: 16px;
+            color: #333;
+            font-weight: 500;
+            margin: 0;
+        }
+        .payment-date {
+            font-size: 14px;
+            color: #555;
+            margin: 4px 0 0 0;
+        }
+        .shipping-info-cell p {
+             margin: 0;
+             font-size: 14px;
+             color: #555;
+             line-height: 1.5;
+        }
+        .payment-amount {
+            text-align: right;
+            font-size: 16px;
+            color: #333;
+            font-weight: 500;
+            vertical-align: middle;
+        }
+        .cta-section {
+            padding: 30px 40px;
+        }
+        .button {
+            display: block;
+            width: 100%;
+            background-color: #0d6efd;
+
+            text-align: center;
+        }
+        .button a {
+            display: block;
+            padding: 15px;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .footer-links {
+            padding: 0 40px 30px 40px;
+            text-align: center;
+        }
+        .footer-links a {
+            display: inline-block;
+            margin: 0 10px;
+            color: #0d6efd;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        .clear {
+            clear: both;
+        }
+    </style>
+</head>
+<body>
+    <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color: #f1f3f8; padding: 20px 0;">
+        <tr>
+            <td align="center">
+                <table class="main-container" border="0" cellpadding="0" cellspacing="0">
+                    <tr>
+                        <td class="header-container">
+                            <div class="header-content">
+                                <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td width="70%">
+                                            <table border="0" cellpadding="0" cellspacing="0">
+                                                <tr>
+                                                    <td class="company-logo-cell">
+                                                        <img src="../../static/imagenes/logo.png" alt="Logo MF Tienda" class="company-logo-img">
+                                                    </td>
+                                                    <td class="company-name">
+                                                        MF Tienda
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                        <td width="30%" class="receipt-details">
+                                            11 de Agosto de 2025
+                                        </td>
+                                    </tr>
+                                </table>
+
+                                <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td class="greeting-section">
+                                            <h1>Gracias por tu compra, Maximo</h1>
+                                            <p>Tu pedido <strong>#1024</strong> está en preparación. Te avisaremos de nuevo cuando sea enviado.</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="header-curve"></div>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>
+                            <div class="content">
+                                <div class="total-section">
+                                    <h2>Total del pedido</h2>
+                                    <span class="price">$6.080,00</span>
+                                    <div class="clear"></div>
+                                </div>
+
+                                <table class="details-table" width="100%" border="0" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td class="label">Subtotal</td>
+                                        <td class="value">$5.822,00</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="label">Costo de envío</td>
+                                        <td class="value">$258,00</td>
+                                    </tr>
+                                </table>
+                                
+                                <div class="payment-section">
+                                    <h3>Pagos</h3>
+                                    <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td>
+                                                <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                                                    <tr>
+                                                        <td class="payment-icon-cell">
+                                                            <img src="mercadoPago.png" alt="Mercado Pago" width="38" height="38">
+                                                        </td>
+                                                        <td class="payment-info-cell">
+                                                            <p class="payment-name">Mercado Pago</p>
+                                                            <p class="payment-date">11 de Agosto de 2025 17:34</p>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                            <td class="payment-amount">
+                                                $6.080,00
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                
+                                <div class="shipping-section">
+                                    <h3>Información de envío</h3>
+                                     <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                                        <tr>
+                                            <td class="shipping-icon-cell">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #555;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                                            </td>
+                                            <td class="shipping-info-cell">
+                                                <p>
+                                                    <strong>Maximo González</strong><br>
+                                                    Av. Corrientes 1234, Piso 5, Depto A<br>
+                                                    Buenos Aires, C1043AAS<br>
+                                                    Argentina
+                                                </p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td class="cta-section">
+                            <table class="button" border="0" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td>
+                                        <a href="https://www.tutienda.com/pedidos/1024">
+                                            Ver estado del pedido
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td class="footer-links">
+                            <a href="https://www.tutienda.com">Seguir comprando</a> &nbsp;&bull;&nbsp;
+                            <a href="https://www.tutienda.com/soporte">Contactar a Soporte</a>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
