@@ -4,15 +4,9 @@
 {% block title %}Pago Aprobado{% endblock %}
 
 {% block extra_head %}
-    <link rel="stylesheet" href="{% static 'css/pago_status.css' %}">
-    <link rel="stylesheet" href="{% static 'css/pedidos_styles.css' %}"> {# ✅ LÍNEA AÑADIDA #}
-    <style>
-        #lottie-animation {
-            width: 150px;
-            height: 150px;
-            margin: 0 auto 24px;
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'css/apps/modulos/pedidos/pago_status.css' %}">
+    <link rel="stylesheet" href="{% static 'css/apps/modulos/pedidos/pedidos_styles.css' %}">
+    <link rel="stylesheet" href="{% static  'css/apps/modulos/pedidos/pago_exitoso.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -33,17 +27,5 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    lottie.loadAnimation({
-        container: document.getElementById('lottie-animation'), // El div que creamos
-        renderer: 'svg',
-        loop: false,
-        autoplay: true,
-        
-        // ✅ AQUÍ ES DONDE APUNTA A TU ARCHIVO GUARDADO
-        path: "{% static 'lottie/checkmark.json' %}" 
-    });
-});
-</script>
+<script src="{% static 'js/apps/modulos/pedidos/pago_exitoso.js' %}"></script>
 {% endblock %}

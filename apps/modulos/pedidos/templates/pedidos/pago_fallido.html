@@ -4,16 +4,11 @@
 {% block title %}Pago Rechazado{% endblock %}
 
 {% block extra_head %}
-    <link rel="stylesheet" href="{% static 'css/pago_status.css' %}">
-    <link rel="stylesheet" href="{% static 'css/pedidos_styles.css' %}">
-    <style>
-        #lottie-animation-failure {
-            width: 150px;
-            height: 150px;
-            margin: 0 auto 24px;
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'css/apps/modulos/pedidos/pago_status.css' %}">
+    <link rel="stylesheet" href="{% static 'css/apps/modulos/pedidos/pedidos_styles.css' %}">
+    <link rel="stylesheet" href="{% static 'css/apps/modulos/pedidos/pago_fallido.css' %}">
 {% endblock %}
+
 
 {% block content %}
 <div class="status-container">
@@ -31,15 +26,5 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    lottie.loadAnimation({
-        container: document.getElementById('lottie-animation-failure'),
-        renderer: 'svg',
-        loop: false,
-        autoplay: true,
-        path: "{% static 'lottie/failed.json' %}" 
-    });
-});
-</script>
+    <script src="{% static 'js/apps/modulos/pedidos/pago_fallido.js' %}"></script>
 {% endblock %}
