@@ -4,6 +4,61 @@ document.addEventListener('DOMContentLoaded', () => {
         const stepIndicators = document.querySelectorAll('.stepper .step');
         const orderStatusCard = document.getElementById('order-status-card');
         
+        const summaryItemsContainer = document.querySelector('.summary-items');
+        const totalsSummaryContainer = document.querySelector('.totals-summary');
+
+        const formatPrice = (value) => {
+            return `$ ${Number(value).toLocaleString('es-AR')}`;
+        };
+
+        const renderSummaryItems = () => {
+            const carrito = JSON.parse(sessionStorage.getItem('carrito_demo')) || [];
+            if (!summaryItemsContainer) return;
+            summaryItemsContainer.innerHTML = '';
+            let subtotal = 0;
+            if (carrito.length === 0) {
+                summaryItemsContainer.innerHTML = '<p class="cart-empty-summary">No hay productos en el carrito.</p>';
+            } else {
+                carrito.forEach(item => {
+                    const precio = parseFloat(String(item.precio).replace(',', '.')) || 0;
+                    const cantidad = item.cantidad || 1;
+                    const itemSubtotal = precio * cantidad;
+                    subtotal += itemSubtotal;
+
+                    const div = document.createElement('div');
+                    div.className = 'summary-item';
+                    div.innerHTML = `
+                        <img src="${item.imagen || 'https://via.placeholder.com/120x120/f1f1f1/cccccc?text=Producto'}" alt="${item.nombre}" class="item-image">
+                        <div class="item-details">
+                            <p>${item.nombre}</p>
+                            <span>${item.talle ? 'Talle: ' + item.talle : ''}${item.talle ? ' ' : ''}${cantidad > 1 ? 'x' + cantidad : ''}</span>
+                        </div>
+                        <span class="item-price">${formatPrice(itemSubtotal)}</span>
+                    `;
+                    summaryItemsContainer.appendChild(div);
+                });
+            }
+
+            // Calcular envío según opción seleccionada
+            let envio = 0;
+            const shippingRadio = document.querySelector('input[name="tipo_envio"]:checked');
+            if (shippingRadio) {
+                if (shippingRadio.value === 'domicilio') envio = 3500;
+                else if (shippingRadio.value === 'retiro_sucursal') envio = 0;
+                else if (shippingRadio.value === 'envio_expres') envio = 8500;
+                else if (shippingRadio.value === 'demo_tracking') envio = 0;
+            }
+
+            if (totalsSummaryContainer) {
+                const rows = totalsSummaryContainer.querySelectorAll('.total-row span:last-child');
+                if (rows && rows.length >= 3) {
+                    rows[0].textContent = formatPrice(subtotal);
+                    rows[1].textContent = formatPrice(envio);
+                    rows[2].textContent = formatPrice(subtotal + envio);
+                }
+            }
+        };
+
         const populateFinalSummary = () => {
             // Obtener valores del formulario
             const nombre = document.getElementById('nombre').value;
@@ -61,6 +116,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     orderStatusCard.classList.add('hidden');
                 }
             }
+            // Asegurarnos de que el resumen lateral refleje el carrito actual y el envío elegido
+            renderSummaryItems();
         };
 
         const updateStepUI = () => {
@@ -142,9 +199,18 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 shippingDetailsSection.style.display = 'none';
             }
+            // cuando cambia el método de envío, recalculamos totales
+            renderSummaryItems();
         };
         shippingRadios.forEach(radio => radio.addEventListener('change', toggleShippingDetails));
         
         updateStepUI();
         toggleShippingDetails();
+        // Render inicial del resumen con los productos en sessionStorage
+        renderSummaryItems();
+
+        // Escuchar cambios de carrito (disparado desde base.html cuando el usuario modifica el carrito)
+        document.addEventListener('cartUpdated', (e) => {
+            renderSummaryItems();
+        });
     });
