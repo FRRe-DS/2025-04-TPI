@@ -222,7 +222,7 @@ SPECTACULAR_SETTINGS = {
     ],
 }
 
-SOCIALACCOUNT_ADAPTER = "apps.login.adapters.MySocialAccountAdapter"
+# Ya configurado anteriormente para usar apps.modulos.login.adapters.MySocialAccountAdapter
 
 # Logging: enviar únicamente a consola (stdout) durante desarrollo
 LOGGING = {
@@ -273,8 +273,8 @@ KEYCLOAK_LOGIN_REDIRECT_URI = os.getenv(
 )
 KEYCLOAK_LOGOUT_REDIRECT_URI = os.getenv(
     "KEYCLOAK_LOGOUT_REDIRECT_URI",
-    SITE_URL,
-)
+    "",
+).strip() or None
 _keycloak_settings = {
     'server_url': KEYCLOAK_SERVER_URL,
     'use_pkce': KEYCLOAK_USE_PKCE,
@@ -303,4 +303,4 @@ SOCIALACCOUNT_PROVIDERS = {
 
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = '/'
-ACCOUNT_LOGOUT_REDIRECT_URL = KEYCLOAK_LOGOUT_REDIRECT_URI
+ACCOUNT_LOGOUT_REDIRECT_URL = KEYCLOAK_LOGOUT_REDIRECT_URI or '/'

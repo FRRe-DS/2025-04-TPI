@@ -1,25 +1,59 @@
-from django.shortcuts import render,redirect 
-from django.contrib.auth import authenticate, login,logout
-from apps.modulos.administracion.models import Usuario
 import logging
-log = logging.getLogger("app")
-
-# Create your views here.
 from urllib.parse import urlencode
 
 from django.conf import settings
 from django.contrib.auth import logout
-from django.urls import reverse
+from django.shortcuts import redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
+
 from allauth.socialaccount.adapter import get_adapter
 
 
-def _build_keycloak_registration_url(request):
+log = logging.getLogger("app")
+
+
+def _build_keycloak_login_url(request, next_url=None):
+    """Construye la URL de login hacia Keycloak utilizando allauth."""
+    redirect_url = None
+    if next_url:
+        redirect_url = request.build_absolute_uri(next_url)
+
+    try:
+        provider = get_adapter().get_provider(request, 'keycloak')
+        return provider.get_login_url(
+            request,
+            process='login',
+            redirect_url=redirect_url,
+        )
+    except Exception:  # pragma: no cover - fallback defensivo
+        log.exception("No se pudo generar la URL de login de Keycloak desde allauth.")
+        params = {
+            'client_id': settings.KEYCLOAK_CLIENT_ID,
+            'response_type': 'code',
+            'scope': ' '.join(settings.KEYCLOAK_SCOPE),
+            'redirect_uri': settings.KEYCLOAK_LOGIN_REDIRECT_URI,
+        }
+        if redirect_url:
+            params['state'] = redirect_url
+        base_url = (
+            f"{settings.KEYCLOAK_SERVER_URL.rstrip('/')}/"
+            "protocol/openid-connect/auth"
+        )
+        return f"{base_url}?{urlencode(params)}"
+
+
+def _build_keycloak_registration_url(request, next_url=None):
     """Devuelve la URL de registro de Keycloak con la redirección correcta."""
+    redirect_url = None
+    if next_url:
+        redirect_url = request.build_absolute_uri(next_url)
+
     try:
         provider = get_adapter().get_provider(request, 'keycloak')
         return provider.get_login_url(
             request,
             auth_params={'kc_action': 'register'},
+            redirect_url=redirect_url,
         )
     except Exception:  # pragma: no cover - fallback defensivo
         log.exception("No se pudo generar la URL de registro de Keycloak desde allauth.")
@@ -30,79 +64,64 @@ def _build_keycloak_registration_url(request):
             'redirect_uri': settings.KEYCLOAK_LOGIN_REDIRECT_URI,
             'kc_action': 'register',
         }
+        if redirect_url:
+            params['state'] = redirect_url
         base_url = (
             f"{settings.KEYCLOAK_SERVER_URL.rstrip('/')}/"
             "protocol/openid-connect/auth"
         )
         return f"{base_url}?{urlencode(params)}"
 
-def login_view (request):
-    
+
+def _get_safe_next_url(request):
+    next_url = request.GET.get('next') or request.POST.get('next')
+    if not next_url:
+        return None
+    if url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        return next_url
+    log.warning("Parametro next=%s descartado por no ser seguro", next_url)
+    return None
+
+
+def login_view(request):
+    next_url = _get_safe_next_url(request) or settings.LOGIN_REDIRECT_URL
+    keycloak_login_url = _build_keycloak_login_url(request, next_url)
+    keycloak_registration_url = _build_keycloak_registration_url(request, next_url)
+
     if request.method == "POST":
-        
-        email = request.POST.get('gmail')
-        contraseña = request.POST.get('contraseña')
+        log.info("Redirigiendo login hacia Keycloak desde POST.")
+        return redirect(keycloak_login_url)
 
-        log.info("Intento de login con email=%s", email)
+    auto_redirect = request.GET.get("manual") != "1"
+    if auto_redirect:
+        log.info("Auto redirigiendo login hacia Keycloak desde GET.")
 
-        usuario_login = authenticate(request, email=email, password=contraseña)
-
-
-        if usuario_login is not None:
-            #establece la sesion del usuario autenticado en el sistema 
-            login(request, usuario_login,backend='allauth.account.auth_backends.AuthenticationBackend')
-            
-            return redirect('inicio')
-        else:
-            log.debug("usuario login: %s", usuario_login)
-
-    #Usuario.objects.all().delete()
-    usuario_existente = Usuario.objects.all()
-
-    
-    log.debug("usuarios:")
-    for i in usuario_existente: 
-        log.debug("%s", i)
-        log.debug("--------------------------")
-    context= {'active_tab': 'login'}
-
-
-
-
-    
-    return render(request, "login_registro.html",context)
+    context = {
+        'active_tab': 'login',
+        'keycloak_login_url': keycloak_login_url,
+        'keycloak_registration_url': keycloak_registration_url,
+        'auto_redirect': auto_redirect,
+    }
+    return render(request, "login_registro.html", context)
 
 
 def registro_view(request):
-    if request.method == "POST":
-        # Obtengo los datos del nuevo usuario desde el formulario
-        email = request.POST.get('gmail')
-        usuario = request.POST.get('usuario')
-        contraseña = request.POST.get('contraseña')
+    next_url = _get_safe_next_url(request) or settings.LOGIN_REDIRECT_URL
+    keycloak_registration_url = _build_keycloak_registration_url(request, next_url)
+    log.info("Redirigiendo registro hacia Keycloak.")
+    return redirect(keycloak_registration_url)
 
-        log.info("Intento de registro email=%s usuario=%s", email, usuario)
-        # Verifico si ya existe un usuario con el mismo nombre
-        if Usuario.objects.filter(username=usuario).exists():
-            log.warning("Registro: usuario ya existe")
-            return render(request, 'login_registro.html', {'error': 'El nombre de usuario ya está registrado.'})
-
-        # Verifico si ya existe un usuario con el mismo correo electrónico
-        if Usuario.objects.filter(email=email).exists():
-            log.warning("Registro: correo ya existe")
-            return render(request, 'login_registro.html', {'error': 'El correo electrónico ya está registrado.'})
-
-
-        # Creo un nuevo usuario en la base de datos
-        nuevo_usuario = Usuario.objects.create_user(username=usuario, email=email, password=contraseña)
-        
-        # Autentico al usuario después de registrar
-        login(request, nuevo_usuario,backend='allauth.account.auth_backends.AuthenticationBackend')
-        log.info("Usuario autenticado con éxito")
-        return redirect('inicio')
-
-    # Manejar el caso en que el método de solicitud no sea "POST"
-    return render(request, 'login_registro.html')
 
 def cerrar_sesion(request):
     logout(request)
-    return redirect('inicio')
+    base_logout_url = (
+        f"{settings.KEYCLOAK_SERVER_URL.rstrip('/')}/"
+        "protocol/openid-connect/logout"
+    )
+    params = {
+        'client_id': settings.KEYCLOAK_CLIENT_ID,
+    }
+    if settings.KEYCLOAK_LOGOUT_REDIRECT_URI:
+        params['post_logout_redirect_uri'] = settings.KEYCLOAK_LOGOUT_REDIRECT_URI
+    logout_url = f"{base_logout_url}?{urlencode(params)}"
+    return redirect(logout_url)
