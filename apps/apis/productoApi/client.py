@@ -69,6 +69,8 @@ class ProductoAPIClient(BaseAPIClient):
         page: Optional[int] = None,
         limit: Optional[int] = None,
         search: Optional[str] = None,
+        categoria: Optional[str] = None,
+        marca: Optional[str] = None,
     ) -> Any:
         """Obtiene el listado paginado de productos disponibles."""
         params: Dict[str, Any] = {}
@@ -78,8 +80,10 @@ class ProductoAPIClient(BaseAPIClient):
             params["limit"] = limit
         if search:
             params["search"] = search
-
-
+        if categoria:
+            params["categoria"] = categoria
+        if marca:
+            params["marca"] = marca
 
         return self.get("/api/product/", params=params or None, expected_status=200)
 

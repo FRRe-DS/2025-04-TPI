@@ -2,8 +2,39 @@ from django.shortcuts import render
 import logging
 from time import perf_counter
 from apps.apis.productoApi.client import ProductoAPIClient
+import unicodedata
 
 logger = logging.getLogger(__name__)
+
+import unicodedata, re
+
+def normalize(text):
+    if not text:
+        return ""
+    # convertir todo a string siempre
+    text = str(text)
+
+    # eliminar caracteres invisibles
+    text = (
+        text.replace("\u00a0", " ")   # NO-BREAK SPACE
+            .replace("\u200b", "")   # ZERO WIDTH SPACE
+            .replace("\u200c", "")
+            .replace("\u200d", "")
+            .replace("\ufeff", "")
+            .strip()
+    )
+
+    # bajar a minúsculas
+    text = text.lower()
+
+    # normalizar tildes
+    text = unicodedata.normalize("NFD", text)
+    text = "".join(c for c in text if unicodedata.category(c) != "Mn")
+
+    # colapsar múltiples espacios
+    text = re.sub(r"\s+", " ", text)
+
+    return text
 
 
 def inicio_view(request):
@@ -23,11 +54,16 @@ def inicio_view(request):
     except Exception:
         page = 1
     try:
-        limit = int(request.GET.get("limit", 20))
+        limit = int(request.GET.get("limit", 18))
         if limit < 1:
-            limit = 20
+            limit = 18
     except Exception:
-        limit = 20
+        limit = 18
+
+    # Aumentar limit para traer todos los productos y opciones de filtro
+    # Sin búsqueda: traer muchos para mostrar todas las categorías/marcas
+    # Con filtros: traer muchos para evitar paginación innecesaria
+    limit = 5000
 
     productos = []
     pagination_context = {}
@@ -40,8 +76,13 @@ def inicio_view(request):
             "categoria": categoria_filtrada,
             "marca": marca_filtrada,
         })
-        resultado = client.listar_productos(page=page, limit=limit)
-        print('resultados',resultado,)
+        # Traer todos los productos sin filtros para obtener todas las opciones disponibles
+        resultado = client.listar_productos(
+            page=page, 
+            limit=limit,
+            search=termino_busqueda,
+        )
+        
 
         elapsed = perf_counter() - start
         logger.info("Stock API listar_productos respondió en %.3fs", elapsed)
@@ -102,36 +143,60 @@ def inicio_view(request):
             })
         logger.info("Obtenidos %d productos (raw=%d) desde Stock API", len(productos), len(productos_raw))
     except Exception as e:
-        # No fallback a datos hardcodeados: registramos y devolvemos lista vacía
         logger.exception("Error obteniendo productos desde Stock API para path=%s user=%s: %s", request.get_full_path(), getattr(request, "user", None), e)
         productos = []
 
-    # aplicar filtros locales
+    # Extraer categorías y marcas disponibles ANTES de filtrar
+    categorias_disponibles = sorted({producto.get("categoria", "") for producto in productos if producto.get("categoria", "")})
+    marcas_disponibles = sorted({producto.get("marca", "") for producto in productos if producto.get("marca", "")})
+
+    # =============================
+    #     FILTROS CON NORMALIZE
+    # =============================
+
+    q = normalize(termino_busqueda)
+    cat_f = normalize(categoria_filtrada)
+    marca_f = normalize(marca_filtrada)
+
     def _filtrar(prod):
-        if termino_busqueda:
-            if termino_busqueda.lower() not in prod.get("nombre", "").lower() and termino_busqueda.lower() not in prod.get("descripcion", "").lower():
-                return False
-        if categoria_filtrada and prod.get("categoria") != categoria_filtrada:
+        nombre = normalize(prod.get("nombre", ""))        
+        marca = normalize(prod.get("marca", ""))
+        categoria = normalize(prod.get("categoria", ""))
+
+        # búsqueda general
+        if q and (q not in nombre and q not in marca):
             return False
-        if marca_filtrada and prod.get("marca") != marca_filtrada:
+
+        # categoría
+        if cat_f and cat_f != categoria:
             return False
+
+        # marca
+        if marca_f and marca_f != marca:
+            return False
+
+        # precio
         try:
-            if precio_minimo and float(precio_minimo) > prod.get("precio", 0):
+            precio = prod.get("precio", 0)
+            if precio_minimo and float(precio_minimo) > precio:
                 return False
-            if precio_maximo and float(precio_maximo) < prod.get("precio", 0):
+            if precio_maximo and float(precio_maximo) < precio:
                 return False
-        except Exception:
+        except:
             pass
+
         return True
 
     productos = [p for p in productos if _filtrar(p)]
 
-    logger.debug("Filtros aplicados: busqueda=%s categoria=%s marca=%s precio_min=%s precio_max=%s -> %d resultados", termino_busqueda, categoria_filtrada, marca_filtrada, precio_minimo, precio_maximo, len(productos))
+    
 
-    categorias_disponibles = sorted({producto.get("categoria", "") for producto in productos})
-    marcas_disponibles = sorted({producto.get("marca", "") for producto in productos})
+    
+    logger.debug(
+        "Filtros aplicados: busqueda=%s categoria=%s marca=%s precio_min=%s precio_max=%s -> %d resultados",
+        termino_busqueda, categoria_filtrada, marca_filtrada, precio_minimo, precio_maximo, len(productos)
+    )
 
-    # carrito: por ahora no hay datos locales hardcodeados; usar vacío o cargar desde sesión/BD más adelante
     carrito = []
     total_carrito = 0.0
 
@@ -151,6 +216,6 @@ def inicio_view(request):
         "total_carrito": total_carrito,
         "pagination": pagination_context,
     }
+
     logger.info("Renderizando inicio.html con %d productos (page=%s, limit=%s)", len(productos), page, limit)
     return render(request, "inicio.html", context)
-
