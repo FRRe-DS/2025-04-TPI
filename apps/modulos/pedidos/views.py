@@ -126,44 +126,25 @@ def pago_fallido(request):
 def mis_pedidos(request):
     """
     Muestra el historial de pedidos del usuario.
-    Utiliza datos hardcodeados para la maquetación.
+    Consume el endpoint /api/shopcart/history sin autenticación.
     """
-    # Datos hardcodeados para el diseño
-    pedidos_hardcoded = [
-        {
-            'id': '717-1',
-            'fecha': '2025-10-05',
-            'total': 850000.90,
-            'estado': 'en_proceso',
-            'estado_display': 'En proceso',
-            'direccion_envio': 'Av siempreviva 123',
-            'items': [
-                {'nombre': 'Computadora asus', 'cantidad': 2, 'precio': 350000.45},
-                {'nombre': 'Xiaomi Smartwatch', 'cantidad': 1, 'precio': 150000.00},
-            ],
-            'puede_cancelar': True,
-        },
-        {
-            'id': '717-2',
-            'fecha': '2025-07-15',
-            'total': 600000.00,
-            'estado': 'entregado',
-            'estado_display': 'Entregado',
-            'direccion_envio': 'Av siempreviva 125',
-            'items': [
-                {'nombre': 'Tablet Huawei', 'cantidad': 1, 'precio': 600000.00},
-            ],
-            'puede_cancelar': False,
-        }
-    ]
-
-    # Calculamos el subtotal en la vista
-    for pedido in pedidos_hardcoded:
-        for item in pedido['items']:
-            item['subtotal'] = item['cantidad'] * item['precio']
+    import requests
+    
+    pedidos = []
+    try:
+        resp = requests.get(
+            f"{settings.BASE_URL}/api/shopcart/history",
+            cookies=request.COOKIES,
+            timeout=5
+        )
+        if resp.status_code == 200:
+            pedidos = resp.json()
+    except Exception as e:
+        logger.exception("Error al obtener historial de pedidos desde API: %s", str(e))
+        pedidos = []
 
     context = {
-        'pedidos': pedidos_hardcoded,
+        'pedidos': pedidos,
     }
     return render(request, 'pedidos/mis_pedidos.html', context)
 

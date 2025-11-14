@@ -19,7 +19,9 @@ SECRET_KEY = 'django-insecure-8io^32_+@-bwm(q8@jdflu^^6-_btdevo5p%1uc%l*od_70i=2
 
 # la url utilizada
 SITE_URL = "http://127.0.0.1:8000"
+BASE_URL = "http://127.0.0.1:8000"
 # SITE_URL = "https://tcc25.myqnapcloud.com"
+# BASE_URL = "https://tcc25.myqnapcloud.com"
 
 DEBUG = True
 ALLOWED_HOSTS = ['*']

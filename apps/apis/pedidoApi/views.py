@@ -5,7 +5,7 @@ from django.db import transaction
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 
 from utils.apiCliente import APIError
 
@@ -20,7 +20,7 @@ from .serializer import PedidoSerializer
 class PedidoViewSet(viewsets.ModelViewSet):
     queryset = Pedido.objects.select_related("direccion_envio", "usuario").prefetch_related("detalles")
     serializer_class = PedidoSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -234,7 +234,7 @@ class PedidoViewSet(viewsets.ModelViewSet):
     def history(self, request):
         """GET /api/shopcart/history - Ver historial de pedidos del usuario autenticado"""
         queryset = self.get_queryset()  # Ya está filtrado por usuario en get_queryset
-        serializer = self.get_serializer(queryset, many=True)
+        serializer = self.get_serializer(queryset, many=True, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=["get"], url_path="history-detail")
@@ -242,7 +242,7 @@ class PedidoViewSet(viewsets.ModelViewSet):
         """GET /api/shopcart/history/{id} - Ver un pedido específico"""
         try:
             pedido = self.get_object()  # Más simple: usa get_object() que ya maneja pk
-            serializer = self.get_serializer(pedido)
+            serializer = self.get_serializer(pedido, context={"request": request})
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Pedido.DoesNotExist:
             return Response(
@@ -252,6 +252,85 @@ class PedidoViewSet(viewsets.ModelViewSet):
                 },
                 status=status.HTTP_404_NOT_FOUND
             )
+
+    @action(detail=False, methods=["post"], url_path="checkout")
+    def crear_desde_carrito(self, request):
+        """POST /api/shopcart/checkout - Crear pedido desde carrito mock (sin autenticación)"""
+        
+        # Obtener items mock del payload
+        items = request.data.get("items", [])
+
+        if not items:
+            return Response(
+                {"error": "El carrito mock está vacío", "code": "EMPTY_CART"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Extraer datos de dirección del payload
+        nombre_receptor = request.data.get("nombre_receptor")
+        calle = request.data.get("calle")
+        ciudad = request.data.get("ciudad")
+        cp = request.data.get("cp")
+        
+        # Validar datos mínimos
+        if not all([nombre_receptor, calle, ciudad, cp]):
+            return Response(
+                {"error": "Faltan datos requeridos", "code": "MISSING_DATA"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        departamento = request.data.get("departamento", "")
+        tipo_transporte = request.data.get("tipo_transporte", "domicilio")
+        telefono = request.data.get("telefono", "")
+
+        # Crear dirección de envío
+        with transaction.atomic():
+            direccion = DireccionEnvio.objects.create(
+                calle=calle,
+                ciudad=ciudad,
+                codigo_postal=cp,
+                nombre_receptor=nombre_receptor,
+                provincia=departamento,
+                telefono=telefono,
+                pais="Argentina",
+            )
+
+            # Crear pedido
+            pedido = Pedido.objects.create(
+                usuario=None,   # Modo mock, sin autenticación
+                direccion_envio=direccion,
+                estado=Pedido.Estado.PENDIENTE,
+                tipo_transporte=tipo_transporte,
+                total=Decimal("0.00")
+            )
+
+            # Procesar items mock y crear detalles de pedido
+            total = Decimal("0.00")
+            for item in items:
+                nombre = item.get("nombre", "Producto sin nombre")
+                cantidad = int(item.get("cantidad", 1))
+                precio = Decimal(str(item.get("precio", 0)))
+                subtotal = cantidad * precio
+                total += subtotal
+
+                DetallePedido.objects.create(
+                    pedido=pedido,
+                    producto_id=item.get("id", 0),
+                    nombre_producto=nombre,
+                    cantidad=cantidad,
+                    precio_unitario=precio,
+                )
+
+            # Actualizar total del pedido
+            pedido.total = total
+            pedido.save(update_fields=["total"])
+
+            serializer = self.get_serializer(pedido)
+            return Response({
+                "message": "ok",
+                "pedido_id": pedido.id,
+                "pedido": serializer.data
+            }, status=status.HTTP_201_CREATED)
 
     # --------------------------------------------------------------
     # Tracking de envíos (integración Compras ↔ Logística)

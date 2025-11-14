@@ -150,5 +150,20 @@ class PedidoSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instancia):
         representacion = super().to_representation(instancia)
+
+        # Asegurar que se incluyan los detalles
+        representacion["detalles"] = DetallePedidoSerializer(
+            instancia.detalles.all(),
+            many=True
+        ).data
+
+        # Asegurar que se incluya la dirección de envío
+        if instancia.direccion_envio:
+            representacion["direccion_envio"] = DireccionEnvioSerializer(
+                instancia.direccion_envio
+            ).data
+
+        # Formatear total como string
         representacion["total"] = str(instancia.total)
+
         return representacion
