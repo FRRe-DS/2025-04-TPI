@@ -71,6 +71,7 @@
         <div class="cart-footer" style="display: none;">
             <div class="cart-total"><span>Total</span><span>$ 0.00</span></div>
             <button class="btn-checkout" disabled>Proceder al Pago</button>
+            <button id="clear-cart-btn" class="btn-clear-cart">Limpiar Carrito</button>
             <small class="cart-disclaimer">* Carrito demostrativo.</small>
         </div>
     </aside>
@@ -226,6 +227,16 @@
                 window.actualizarCantidadProducto(productoId, nuevaCantidad);
             }
         });
+        window.limpiarCarrito = function() {
+            if (confirm('¿Estás seguro de que deseas limpiar el carrito?')) {
+                carrito = [];
+                actualizarVistaCarrito();
+            }
+        };
+        const clearCartBtn = document.getElementById('clear-cart-btn');
+        if (clearCartBtn) {
+            clearCartBtn.addEventListener('click', window.limpiarCarrito);
+        }
         const style = document.createElement('style');
         style.innerHTML = `
             .cart-sidebar { position: fixed; top: 0; right: -100%; width: 400px; height: 100%; background-color: #fff; box-shadow: -5px 0 15px rgba(0,0,0,0.1); z-index: 1001; transition: right 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); display: flex; flex-direction: column; }
@@ -249,6 +260,8 @@
             .btn-checkout { width: 100%; padding: 15px; background-color: black; color: white; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: 600; cursor: pointer; }
             .btn-checkout:disabled { background-color: #a0a0a0; cursor: not-allowed; }
             .cart-disclaimer { font-size: 0.8rem; color: #6c757d; text-align: center; display: block; margin-top: 10px; }
+            .btn-clear-cart { width: 100%; padding: 12px; background-color: #dc3545; color: white; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; margin-top: 10px; }
+            .btn-clear-cart:hover { background-color: #c82333; }
             .cart-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.4); z-index: 1000; opacity: 0; visibility: hidden; transition: opacity 0.4s ease, visibility 0.4s ease; }
             .cart-overlay.visible { opacity: 1; visibility: visible; }
             .cart-quantity-selector { display: flex; align-items: center; border: 1px solid #ddd; border-radius: 20px; overflow: hidden; margin-left: 10px; }

@@ -35,10 +35,26 @@ document.addEventListener('DOMContentLoaded', () => {
             const tipo_envio_el = document.querySelector('input[name="tipo_envio"]:checked');
             const tipo_transporte = tipo_envio_el?.value || "domicilio";
 
-            if (!nombre || !calle || !ciudad || !codigo_postal) {
-                alert("Por favor completa todos los campos requeridos.");
+            // Validación: Nombre y teléfono siempre requeridos
+            if (!nombre || !telefono) {
+                alert("Por favor completa nombre y teléfono.");
                 return;
             }
+
+            // Validación condicional: Si NO es retiro en sucursal, requiere dirección
+            if (tipo_transporte !== 'retiro_sucursal' && tipo_transporte !== 'demo_tracking') {
+                if (!calle || !ciudad || !codigo_postal) {
+                    alert("Por favor completa todos los campos de dirección.");
+                    return;
+                }
+            }
+
+            // Calcular costo de envío según tipo de transporte
+            let costo_envio = 0;
+            if (tipo_transporte === 'domicilio') costo_envio = 3500;
+            else if (tipo_transporte === 'retiro_sucursal') costo_envio = 0;
+            else if (tipo_transporte === 'envio_expres') costo_envio = 8500;
+            else if (tipo_transporte === 'demo_tracking') costo_envio = 0;
 
             try {
                 const resp = await fetch("/api/shopcart/checkout", {
@@ -55,6 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         ciudad: ciudad,
                         cp: codigo_postal,
                         tipo_transporte: tipo_transporte,
+                        costo_envio: costo_envio,   // 🔥 Incluir costo de envío
                         items: carrito   // 🔥 enviar carrito mock al backend
                     })
                 });
@@ -68,6 +85,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const pedidoData = await resp.json();
                 console.log("Pedido creado exitosamente:", pedidoData);
+                
+                // 🔥 Limpiar carrito mock del sessionStorage
+                sessionStorage.setItem("carrito_demo", JSON.stringify([]));
                 
                 // Redirigir a mis pedidos
                 window.location.href = "/pedidos/";

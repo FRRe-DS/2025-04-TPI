@@ -268,20 +268,34 @@ class PedidoViewSet(viewsets.ModelViewSet):
 
         # Extraer datos de dirección del payload
         nombre_receptor = request.data.get("nombre_receptor")
-        calle = request.data.get("calle")
-        ciudad = request.data.get("ciudad")
-        cp = request.data.get("cp")
+        tipo_transporte = request.data.get("tipo_transporte", "domicilio")
         
-        # Validar datos mínimos
-        if not all([nombre_receptor, calle, ciudad, cp]):
+        # Validar datos mínimos comunes
+        if not nombre_receptor:
             return Response(
-                {"error": "Faltan datos requeridos", "code": "MISSING_DATA"},
+                {"error": "Falta nombre del receptor", "code": "MISSING_DATA"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        
+        # Validar dirección solo si NO es retiro en sucursal
+        if tipo_transporte not in ['retiro_sucursal', 'demo_tracking']:
+            calle = request.data.get("calle")
+            ciudad = request.data.get("ciudad")
+            cp = request.data.get("cp")
+            if not all([calle, ciudad, cp]):
+                return Response(
+                    {"error": "Faltan datos de dirección", "code": "MISSING_DATA"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        else:
+            # Para retiro en sucursal, dirección es opcional
+            calle = request.data.get("calle", "")
+            ciudad = request.data.get("ciudad", "")
+            cp = request.data.get("cp", "")
 
         departamento = request.data.get("departamento", "")
-        tipo_transporte = request.data.get("tipo_transporte", "domicilio")
         telefono = request.data.get("telefono", "")
+        costo_envio = Decimal(str(request.data.get("costo_envio", 0)))
 
         # Crear dirección de envío
         with transaction.atomic():
@@ -320,6 +334,9 @@ class PedidoViewSet(viewsets.ModelViewSet):
                     cantidad=cantidad,
                     precio_unitario=precio,
                 )
+
+            # 🔥 Agregar costo de envío al total
+            total += costo_envio
 
             # Actualizar total del pedido
             pedido.total = total
