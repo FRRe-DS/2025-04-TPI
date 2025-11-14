@@ -234,7 +234,7 @@ class PedidoViewSet(viewsets.ModelViewSet):
     def history(self, request):
         """GET /api/shopcart/history - Ver historial de pedidos del usuario autenticado"""
         queryset = self.get_queryset()  # Ya está filtrado por usuario en get_queryset
-        serializer = self.get_serializer(queryset, many=True)
+        serializer = self.get_serializer(queryset, many=True, context={"request": request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=["get"], url_path="history-detail")
@@ -242,7 +242,7 @@ class PedidoViewSet(viewsets.ModelViewSet):
         """GET /api/shopcart/history/{id} - Ver un pedido específico"""
         try:
             pedido = self.get_object()  # Más simple: usa get_object() que ya maneja pk
-            serializer = self.get_serializer(pedido)
+            serializer = self.get_serializer(pedido, context={"request": request})
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Pedido.DoesNotExist:
             return Response(
