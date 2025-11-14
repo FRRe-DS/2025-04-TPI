@@ -824,6 +824,106 @@ MOCK_PRODUCTS = [
     "categoria": "Remeras",
     "marca": "ClassicLine",
     "imagen": "/static/imagenes/mock/remera_algodon_egipcio.webp"
+},
+{
+    "id": 81,
+    "nombre": "Zapatillas running ultralivianas",
+    "descripcion": "Modelo de entrenamiento ultraliviano con malla respirable.",
+    "precio": 29999.0,
+    "stock": 20,
+    "categoria": "Zapatillas",
+    "marca": "ProSport",
+    "imagen": "/static/imagenes/mock/zapatillas_ultralivianas.webp"
+},
+{
+    "id": 82,
+    "nombre": "Zapatillas urban street high",
+    "descripcion": "Zapatillas de caña alta estilo urbano.",
+    "precio": 25999.0,
+    "stock": 18,
+    "categoria": "Zapatillas",
+    "marca": "StepUp",
+    "imagen": "/static/imagenes/mock/zapatillas_highstreet.webp"
+},
+{
+    "id": 83,
+    "nombre": "Zapatillas training multicapa",
+    "descripcion": "Capas reforzadas para mayor estabilidad en entrenamientos.",
+    "precio": 27999.0,
+    "stock": 16,
+    "categoria": "Zapatillas",
+    "marca": "ProSport",
+    "imagen": "/static/imagenes/mock/zapatillas_training.webp"
+},
+{
+    "id": 84,
+    "nombre": "Zapatillas urbanas knit",
+    "descripcion": "Diseño tejido tipo knit con ajuste cómodo.",
+    "precio": 26999.0,
+    "stock": 22,
+    "categoria": "Zapatillas",
+    "marca": "UrbanFit",
+    "imagen": "/static/imagenes/mock/zapatillas_knit.webp"
+},
+{
+    "id": 85,
+    "nombre": "Zapatillas retro runner",
+    "descripcion": "Modelo running clásico con estética retro.",
+    "precio": 28999.0,
+    "stock": 14,
+    "categoria": "Zapatillas",
+    "marca": "StepUp",
+    "imagen": "/static/imagenes/mock/zapatillas_retrorunner.webp"
+},
+{
+    "id": 86,
+    "nombre": "Zapatillas outdoor impermeables",
+    "descripcion": "Zapatillas resistentes con membrana impermeable.",
+    "precio": 34999.0,
+    "stock": 12,
+    "categoria": "Zapatillas",
+    "marca": "NorthWind",
+    "imagen": "/static/imagenes/mock/zapatillas_impermeables.webp"
+},
+{
+    "id": 87,
+    "nombre": "Zapatillas deportivas amortiguadas",
+    "descripcion": "Amortiguación avanzada para pisada cómoda.",
+    "precio": 30999.0,
+    "stock": 18,
+    "categoria": "Zapatillas",
+    "marca": "ProSport",
+    "imagen": "/static/imagenes/mock/zapatillas_amortiguadas.webp"
+},
+{
+    "id": 88,
+    "nombre": "Zapatillas urbanas chunky",
+    "descripcion": "Diseño moderno con suela chunky.",
+    "precio": 27999.0,
+    "stock": 20,
+    "categoria": "Zapatillas",
+    "marca": "UrbanFit",
+    "imagen": "/static/imagenes/mock/zapatillas_chunky.webp"
+},
+{
+    "id": 89,
+    "nombre": "Zapatillas skate urban grip",
+    "descripcion": "Zapatillas reforzadas con suela antideslizante.",
+    "precio": 23999.0,
+    "stock": 15,
+    "categoria": "Zapatillas",
+    "marca": "StepUp",
+    "imagen": "/static/imagenes/mock/zapatillas_skateurbangrip.webp"
+},
+{
+    "id": 90,
+    "nombre": "Zapatillas running aire dinámico",
+    "descripcion": "Sistema de ventilación dinámica para mayor confort.",
+    "precio": 31999.0,
+    "stock": 17,
+    "categoria": "Zapatillas",
+    "marca": "ProSport",
+    "imagen": "/static/imagenes/mock/zapatillas_aire.webp"
 }
 ]
 

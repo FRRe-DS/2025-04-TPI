@@ -60,26 +60,22 @@ def inicio_view(request):
     except Exception:
         limit = 18
 
-    # Aumentar limit para traer todos los productos y opciones de filtro
-    # Sin búsqueda: traer muchos para mostrar todas las categorías/marcas
-    # Con filtros: traer muchos para evitar paginación innecesaria
-    limit = 5000
-
     productos = []
     pagination_context = {}
     start = perf_counter()
     try:
         client = ProductoAPIClient(base_url="http://localhost:8000")
         
-        logger.debug("Llamando a StockClient.listar_productos page=%s limit=%s filtros=%s", page, limit, {
+        logger.debug("Llamando a StockClient.listar_productos con limit=5000 para obtener todos los resultados filtrados=%s", {
             "busqueda": termino_busqueda,
             "categoria": categoria_filtrada,
             "marca": marca_filtrada,
         })
-        # Traer todos los productos sin filtros para obtener todas las opciones disponibles
+        
+        # Una sola llamada: traer muchos productos para aplicar filtros y paginar localmente
         resultado = client.listar_productos(
-            page=page, 
-            limit=limit,
+            page=1, 
+            limit=5000,
             search=termino_busqueda,
         )
         
@@ -88,27 +84,6 @@ def inicio_view(request):
         logger.info("Stock API listar_productos respondió en %.3fs", elapsed)
         if isinstance(resultado, dict) and "data" in resultado:
             productos_raw = resultado.get("data") or []
-            pag = resultado.get("pagination") or resultado.get("meta") or {}
-            total = pag.get("total") or pag.get("total_count") or pag.get("count")
-            per_page = pag.get("per_page") or pag.get("limit") or limit
-            current = pag.get("page") or page
-            total_pages = None
-            try:
-                if total and per_page:
-                    total_pages = max(1, (int(total) + int(per_page) - 1) // int(per_page))
-            except Exception:
-                logger.warning("No se pudo calcular total_pages para paginación: total=%s per_page=%s", total, per_page)
-                total_pages = None
-            pagination_context = {
-                "total": total,
-                "per_page": per_page,
-                "current_page": current,
-                "total_pages": total_pages,
-                "has_next": (total_pages is not None and current < total_pages) or bool(pag.get("next")),
-                "has_prev": (current and current > 1) or bool(pag.get("previous")),
-                "next_page": (current + 1) if (total_pages is None or current < total_pages) else None,
-                "prev_page": (current - 1) if (current and current > 1) else None,
-            }
         else:
             if resultado is None:
                 logger.warning("Stock API devolvió None en listar_productos")
@@ -147,8 +122,8 @@ def inicio_view(request):
         productos = []
 
     # Extraer categorías y marcas disponibles ANTES de filtrar
-    categorias_disponibles = sorted({producto.get("categoria", "") for producto in productos if producto.get("categoria", "")})
-    marcas_disponibles = sorted({producto.get("marca", "") for producto in productos if producto.get("marca", "")})
+    categorias_disponibles = sorted({p.get("categoria", "") for p in productos if p.get("categoria", "")})
+    marcas_disponibles = sorted({p.get("marca", "") for p in productos if p.get("marca", "")})
 
     # =============================
     #     FILTROS CON NORMALIZE
@@ -189,19 +164,43 @@ def inicio_view(request):
 
     productos = [p for p in productos if _filtrar(p)]
 
+    # Paginación manual después de filtrar
+    total_resultados = len(productos)
+    per_page = limit  # 18 productos por página
+    total_pages = max(1, (total_resultados + per_page - 1) // per_page) if total_resultados > 0 else 1
     
+    # Validar página
+    if page < 1:
+        page = 1
+    if page > total_pages:
+        page = total_pages
+    
+    # Calcular índices para slice
+    start_idx = (page - 1) * per_page
+    end_idx = start_idx + per_page
+    productos_pagina = productos[start_idx:end_idx]
+    
+    pagination_context = {
+        "total": total_resultados,
+        "per_page": per_page,
+        "current_page": page,
+        "total_pages": total_pages,
+        "has_next": page < total_pages,
+        "has_prev": page > 1,
+        "next_page": page + 1 if page < total_pages else None,
+        "prev_page": page - 1 if page > 1 else None,
+    }
 
-    
     logger.debug(
-        "Filtros aplicados: busqueda=%s categoria=%s marca=%s precio_min=%s precio_max=%s -> %d resultados",
-        termino_busqueda, categoria_filtrada, marca_filtrada, precio_minimo, precio_maximo, len(productos)
+        "Filtros aplicados: busqueda=%s categoria=%s marca=%s precio_min=%s precio_max=%s -> %d resultados (página %d de %d)",
+        termino_busqueda, categoria_filtrada, marca_filtrada, precio_minimo, precio_maximo, total_resultados, page, total_pages
     )
 
     carrito = []
     total_carrito = 0.0
 
     context = {
-        "productos": productos,
+        "productos": productos_pagina,
         "categorias": categorias_disponibles,
         "marcas": marcas_disponibles,
         "filtros": {
@@ -211,11 +210,11 @@ def inicio_view(request):
             "precio_minimo": precio_minimo,
             "precio_maximo": precio_maximo,
         },
-        "cantidad_resultados": len(productos),
+        "cantidad_resultados": total_resultados,
         "carrito": carrito,
         "total_carrito": total_carrito,
         "pagination": pagination_context,
     }
 
-    logger.info("Renderizando inicio.html con %d productos (page=%s, limit=%s)", len(productos), page, limit)
+    logger.info("Renderizando inicio.html con %d productos de %d totales (página %d de %d)", len(productos_pagina), total_resultados, page, total_pages)
     return render(request, "inicio.html", context)
