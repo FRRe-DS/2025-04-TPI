@@ -10,13 +10,27 @@ que consume estos servicios.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, Optional
+import logging
+from functools import lru_cache
+from typing import Any, Dict, Iterable, Optional, Callable
 
 from django.conf import settings
 
 from utils.apiCliente.base import BaseAPIClient
 from utils.apiCliente.logistica import LogisticsClient
 from utils.apiCliente.stock import StockClient
+from utils.keycloak import get_service_token_provider
+
+
+logger = logging.getLogger(__name__)
+
+
+@lru_cache(maxsize=1)
+def _service_token_provider() -> Optional[Callable[[], str]]:
+    provider = get_service_token_provider(silent=True)
+    if provider is None:
+        logger.debug("No hay token de servicio disponible para clientes HTTP externos.")
+    return provider
 
 
 class PedidoAPIClient(BaseAPIClient):
@@ -48,6 +62,11 @@ class PedidoAPIClient(BaseAPIClient):
         Número máximo de reintentos ante errores de conexión o timeout.
     token / api_key:
         Credenciales opcionales para enviar en cada request.
+    token_provider:
+        Callable que devuelva un JWT dinámico (por ejemplo desde Keycloak).
+    use_service_token:
+        Si es ``True`` y existen las credenciales de servicio en settings,
+        se obtendrá automáticamente un token ``client_credentials`` de Keycloak.
     """
 
     def __init__(
@@ -58,10 +77,15 @@ class PedidoAPIClient(BaseAPIClient):
         max_retries: int = 2,
         token: Optional[str] = None,
         api_key: Optional[str] = None,
+        token_provider: Optional[Callable[[], str]] = None,
+        use_service_token: bool = False,
     ) -> None:
         base_por_defecto = getattr(settings, "base_url_api", "http://localhost:8000/api/")
         if base_url is None:
             base_url = getattr(settings, "PEDIDOS_API_BASE_URL", base_por_defecto) or base_por_defecto
+
+        if use_service_token and token_provider is None:
+            token_provider = _service_token_provider()
 
         super().__init__(
             base_url=base_url,
@@ -69,6 +93,7 @@ class PedidoAPIClient(BaseAPIClient):
             max_retries=max_retries,
             token=token,
             api_key=api_key,
+            token_provider=token_provider,
         )
 
     # ------------------------------------------------------------------
@@ -157,16 +182,17 @@ def obtener_cliente_pedidos(**kwargs: Any) -> PedidoAPIClient:
     """Helper para instanciar ``PedidoAPIClient`` usando la configuración del proyecto."""
     base_por_defecto = getattr(settings, "base_url_api", "http://localhost:8000/api/")
     base_url = getattr(settings, "PEDIDOS_API_BASE_URL", base_por_defecto) or base_por_defecto
+    kwargs.setdefault("use_service_token", True)
     return PedidoAPIClient(base_url=base_url, **kwargs)
 
 
 def obtener_cliente_logistica() -> LogisticsClient:
     base_por_defecto = getattr(settings, "base_url_api", "http://localhost:8000/api/")
     base_url = getattr(settings, "LOGISTICS_API_BASE_URL", base_por_defecto) or base_por_defecto
-    return LogisticsClient(base_url=base_url)
+    return LogisticsClient(base_url=base_url, token_provider=_service_token_provider())
 
 
 def obtener_cliente_stock() -> StockClient:
     base_por_defecto = getattr(settings, "base_url_api", "http://localhost:8000/api/")
     base_url = getattr(settings, "STOCK_API_BASE_URL", base_por_defecto) or base_por_defecto
-    return StockClient(base_url=base_url)
+    return StockClient(base_url=base_url, token_provider=_service_token_provider())

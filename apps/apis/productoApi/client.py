@@ -10,11 +10,12 @@ consume estos recursos.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Callable
 
 from django.conf import settings
 
 from utils.apiCliente.base import BaseAPIClient
+from utils.keycloak import get_service_token_provider
 
 
 class ProductoAPIClient(BaseAPIClient):
@@ -37,6 +38,11 @@ class ProductoAPIClient(BaseAPIClient):
         Número máximo de reintentos ante fallos de conexión o timeout.
     token / api_key:
         Credenciales opcionales para enviar en cada solicitud.
+    token_provider:
+        Callable opcional que entrega un JWT fresco (por ejemplo, desde Keycloak).
+    use_service_token:
+        Si es ``True`` y la configuración incluye credenciales de servicio,
+        el cliente solicitará tokens ``client_credentials`` automáticamente.
     """
 
     def __init__(
@@ -47,10 +53,19 @@ class ProductoAPIClient(BaseAPIClient):
         max_retries: int = 2,
         token: Optional[str] = None,
         api_key: Optional[str] = None,
+        token_provider: Optional[Callable[[], str]] = None,
+        use_service_token: bool = False,
     ) -> None:
-        base_por_defecto = getattr(settings, "base_url_api", "http://localhost:8000/api/")
+        base_por_defecto = getattr(
+            settings,
+            "PRODUCTOS_API_BASE_URL",
+            getattr(settings, "SITE_URL", "http://localhost:8000"),
+        )
         if base_url is None:
-            base_url = getattr(settings, "PRODUCTOS_API_BASE_URL", base_por_defecto) or base_por_defecto
+            base_url = base_por_defecto
+
+        if use_service_token and token_provider is None:
+            token_provider = get_service_token_provider(silent=True)
 
         super().__init__(
             base_url=base_url,
@@ -58,6 +73,7 @@ class ProductoAPIClient(BaseAPIClient):
             max_retries=max_retries,
             token=token,
             api_key=api_key,
+            token_provider=token_provider,
         )
 
     # ------------------------------------------------------------------
@@ -91,6 +107,7 @@ class ProductoAPIClient(BaseAPIClient):
 
 def obtener_cliente_productos(**kwargs: Any) -> ProductoAPIClient:
     """Helper para instanciar ``ProductoAPIClient`` usando la configuración del proyecto."""
-    base_por_defecto = getattr(settings, "base_url_api", "http://localhost:8000/api/")
+    base_por_defecto = getattr(settings, "PRODUCTOS_API_BASE_URL", getattr(settings, "SITE_URL", "http://localhost:8000"))
     base_url = getattr(settings, "PRODUCTOS_API_BASE_URL", base_por_defecto) or base_por_defecto
+    kwargs.setdefault("use_service_token", True)
     return ProductoAPIClient(base_url=base_url, **kwargs)

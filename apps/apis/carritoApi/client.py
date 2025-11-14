@@ -11,12 +11,13 @@ serializadores.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Callable
 
 from django.conf import settings
 
 from utils.apiCliente.base import BaseAPIClient
 from utils.apiCliente.stock import StockClient
+from utils.keycloak import get_service_token_provider
 
 
 class CarritoAPIClient(BaseAPIClient):
@@ -44,6 +45,8 @@ class CarritoAPIClient(BaseAPIClient):
         max_retries: int = 2,
         token: Optional[str] = None,
         api_key: Optional[str] = None,
+        token_provider: Optional[Callable[[], str]] = None,
+        use_service_token: bool = False,
         stock_client: Optional[StockClient] = None,
     ) -> None:
         # establecer URL base por defecto desde la configuración de Django (setting estimado setting)
@@ -51,12 +54,16 @@ class CarritoAPIClient(BaseAPIClient):
         if base_url is None:
             base_url = getattr(settings, "CARRITO_API_BASE_URL", base_por_defecto) or base_por_defecto
 
+        if use_service_token and token_provider is None:
+            token_provider = get_service_token_provider(silent=True)
+
         super().__init__(
             base_url=base_url,
             timeout=timeout,
             max_retries=max_retries,
             token=token,
             api_key=api_key,
+            token_provider=token_provider,
         )
 
         if stock_client is None:
@@ -65,7 +72,10 @@ class CarritoAPIClient(BaseAPIClient):
                 or getattr(settings, "STOCK_API_BASE", None)
                 or base_por_defecto
             )
-            stock_client = StockClient(base_url=stock_base)
+            stock_token_provider = token_provider if token_provider else (
+                get_service_token_provider(silent=True) if use_service_token else None
+            )
+            stock_client = StockClient(base_url=stock_base, token_provider=stock_token_provider)
         self.stock_client = stock_client
 
     # ------------------------------------------------------------------
@@ -115,4 +125,5 @@ def obtener_cliente_carrito(**kwargs: Any) -> CarritoAPIClient:
     """Helper para instanciar el cliente con la configuración del proyecto."""
     base_por_defecto = getattr(settings, "base_url_api", "http://localhost:8000/api/")
     base_url = getattr(settings, "CARRITO_API_BASE_URL", base_por_defecto) or base_por_defecto
+    kwargs.setdefault("use_service_token", True)
     return CarritoAPIClient(base_url=base_url, **kwargs)

@@ -1,7 +1,7 @@
 from django.shortcuts import render
 import logging
 from time import perf_counter
-from apps.apis.productoApi.client import ProductoAPIClient
+from apps.apis.productoApi.client import obtener_cliente_productos
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ def inicio_view(request):
     pagination_context = {}
     start = perf_counter()
     try:
-        client = ProductoAPIClient(base_url="http://localhost:8000")
+        client = obtener_cliente_productos()
         
         logger.debug("Llamando a StockClient.listar_productos page=%s limit=%s filtros=%s", page, limit, {
             "busqueda": termino_busqueda,

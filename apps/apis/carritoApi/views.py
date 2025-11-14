@@ -5,10 +5,10 @@ from rest_framework import status
 from .models import Carrito, ItemCarrito
 from .serializer import CartSerializer
 from .client import obtener_cliente_carrito
-from rest_framework.permissions import AllowAny, IsAuthenticated
+
 
 class CartViewSet(viewsets.ViewSet):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def list(self, request):
         """GET /api/shopcart/ - Ver carrito"""
@@ -22,9 +22,7 @@ class CartViewSet(viewsets.ViewSet):
 
     def create(self, request):
         """POST /api/shopcart/ - Agregar al carrito"""
-        carrito, _ = Carrito.objects.get_or_create()
-        
-        print('se creo el carrito sres')
+        carrito, _ = Carrito.objects.get_or_create(usuario=request.user)
 
         product_id = request.data.get('productId')
         quantity = request.data.get('quantity', 1)
