@@ -18,33 +18,32 @@
                 <div class="pedido-header">
                     <div class="pedido-info">
                         <span class="pedido-id">Pedido #{{ pedido.id }}</span>
-                        <span class="pedido-fecha">Realizado el: {{ pedido.fecha }}</span>
+                        <span class="pedido-fecha">Realizado el: {{ pedido.creado_en }}</span>
                     </div>
                     <div class="pedido-estado">
-                        <span class="badge estado-{{ pedido.estado }}">{{ pedido.estado_display }}</span>
+                        <span class="badge estado-{{ pedido.estado }}">{{ pedido.get_estado_display }}</span>
                     </div>
                 </div>
                 <div class="pedido-body">
                     <div class="pedido-direccion">
-                        <strong>Dirección de Envío:</strong> {{ pedido.direccion_envio }}
+                        <strong>Dirección de Envío:</strong> {{ pedido.direccion_envio.calle }}, {{ pedido.direccion_envio.ciudad }}, {{ pedido.direccion_envio.codigo_postal }}
                     </div>
                     <div class="items-section">
                         <h4 class="items-titulo">Productos</h4>
                         <ul class="pedido-items">
-                            {% for item in pedido.items %}
+                            {% for detalle in pedido.detalles %}
                             <li class="pedido-item-line">
-                                <span>{{ item.nombre }} (x{{ item.cantidad }})</span>
-                                <span class="item-subtotal">${{ item.subtotal|floatformat:2 }}</span>
+                                <span>{{ detalle.nombre_producto }} (x{{ detalle.cantidad }})</span>
+                                <span class="item-subtotal">${{ detalle.precio_total|floatformat:2 }}</span>
                             </li>
+                            {% empty %}
+                            <li class="pedido-item-line">Sin productos</li>
                             {% endfor %}
                         </ul>
                     </div>
                 </div>
                 <div class="pedido-footer">
                     <span class="pedido-total">Total: ${{ pedido.total|floatformat:2 }}</span>
-                    {% if pedido.puede_cancelar %}
-                    <button class="btn-cancelar">Cancelar Pedido</button>
-                    {% endif %}
                 </div>
             </div>
             {% endfor %}
@@ -56,4 +55,13 @@
         </div>
     {% endif %}
 </div>
+
+<script>
+// Función para obtener CSRF token
+function getCSRFToken() {
+    const match = document.cookie.match(new RegExp('(^| )csrftoken=([^;]+)'));
+    if (match) return decodeURIComponent(match[2]);
+    return null;
+}
+</script>
 {% endblock %}

@@ -7,6 +7,76 @@ document.addEventListener('DOMContentLoaded', () => {
         const summaryItemsContainer = document.querySelector('.summary-items');
         const totalsSummaryContainer = document.querySelector('.totals-summary');
 
+        // Función para obtener CSRF token
+        const getCSRFToken = () => {
+            const match = document.cookie.match(new RegExp('(^| )csrftoken=([^;]+)'));
+            if (match) return decodeURIComponent(match[2]);
+            return null;
+        };
+
+        // Función para finalizar pedido - NUEVA
+        const finalizarPedido = async (event) => {
+            event.preventDefault();
+
+            // Leer carrito mock desde sessionStorage
+            const carrito = JSON.parse(sessionStorage.getItem("carrito_demo")) || [];
+
+            if (carrito.length === 0) {
+                alert("El carrito mock está vacío.");
+                return;
+            }
+
+            const nombre = document.getElementById('nombre')?.value || '';
+            const telefono = document.getElementById('telefono')?.value || '';
+            const calle = document.getElementById('calle')?.value || '';
+            const departamento = document.getElementById('departamento')?.value || '';
+            const ciudad = document.getElementById('ciudad')?.value || '';
+            const codigo_postal = document.getElementById('codigo_postal')?.value || '';
+            const tipo_envio_el = document.querySelector('input[name="tipo_envio"]:checked');
+            const tipo_transporte = tipo_envio_el?.value || "domicilio";
+
+            if (!nombre || !calle || !ciudad || !codigo_postal) {
+                alert("Por favor completa todos los campos requeridos.");
+                return;
+            }
+
+            try {
+                const resp = await fetch("/api/shopcart/checkout", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCSRFToken(),
+                    },
+                    body: JSON.stringify({
+                        nombre_receptor: nombre,
+                        telefono: telefono,
+                        calle: calle,
+                        departamento: departamento,
+                        ciudad: ciudad,
+                        cp: codigo_postal,
+                        tipo_transporte: tipo_transporte,
+                        items: carrito   // 🔥 enviar carrito mock al backend
+                    })
+                });
+
+                if (!resp.ok) {
+                    const errorText = await resp.text();
+                    console.error("Error al crear el pedido:", errorText);
+                    alert("Error al crear el pedido.");
+                    return;
+                }
+
+                const pedidoData = await resp.json();
+                console.log("Pedido creado exitosamente:", pedidoData);
+                
+                // Redirigir a mis pedidos
+                window.location.href = "/pedidos/";
+            } catch (error) {
+                console.error("Error de red:", error);
+                alert("Error de conexión al crear el pedido.");
+            }
+        };
+
         const formatPrice = (value) => {
             return `$ ${Number(value).toLocaleString('es-AR')}`;
         };
@@ -316,12 +386,18 @@ document.addEventListener('DOMContentLoaded', () => {
         // Conectar al botón de confirmación (id `confirm-order` o clase `.btn-confirm`) y al submit del formulario
         const confirmBtn = document.getElementById('confirm-order') || document.querySelector('.btn-confirm');
         if (confirmBtn) {
-            confirmBtn.addEventListener('click', sendCheckout);
+            confirmBtn.addEventListener('click', finalizarPedido);
         }
 
         // Si el botón final es un `submit` dentro del formulario, capturamos el submit
         const checkoutForm = document.querySelector('.checkout-card form') || document.querySelector('form');
         if (checkoutForm) {
-            checkoutForm.addEventListener('submit', sendCheckout);
+            checkoutForm.addEventListener('submit', finalizarPedido);
+        }
+
+        // También conectar al botón tipo submit si lo hay
+        const submitBtn = document.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.addEventListener('click', finalizarPedido);
         }
     });
