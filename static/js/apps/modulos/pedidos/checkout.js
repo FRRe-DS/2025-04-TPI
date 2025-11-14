@@ -213,4 +213,115 @@ document.addEventListener('DOMContentLoaded', () => {
         document.addEventListener('cartUpdated', (e) => {
             renderSummaryItems();
         });
+
+        // Helpers para enviar el checkout al endpoint backend
+        const getCookie = (name) => {
+            const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+            if (match) return decodeURIComponent(match[2]);
+            return null;
+        };
+
+        const buildPayload = () => {
+            const carrito = JSON.parse(sessionStorage.getItem('carrito_demo')) || [];
+            const products = carrito.map(item => {
+                const pid = item.id || item.productId || item.producto_id || null;
+                const qty = item.cantidad || item.quantity || item.qty || 1;
+                return { productId: Number(pid), quantity: Number(qty) };
+            }).filter(p => p.productId !== null);
+
+            const address = {
+                nombre_receptor: document.getElementById('nombre') ? document.getElementById('nombre').value : '',
+                telefono: document.getElementById('telefono') ? document.getElementById('telefono').value : '',
+                calle: document.getElementById('calle') ? document.getElementById('calle').value : '',
+                departamento: document.getElementById('departamento') ? document.getElementById('departamento').value : '',
+                ciudad: document.getElementById('ciudad') ? document.getElementById('ciudad').value : '',
+                codigo_postal: document.getElementById('codigo_postal') ? document.getElementById('codigo_postal').value : '',
+                provincia: document.getElementById('provincia') ? document.getElementById('provincia').value : '',
+                pais: document.getElementById('pais') ? document.getElementById('pais').value : 'Argentina',
+                informacion_adicional: document.getElementById('informacion_adicional') ? document.getElementById('informacion_adicional').value : '',
+            };
+
+            const transportRadio = document.querySelector('input[name="tipo_envio"]:checked');
+            const transport_type = transportRadio ? transportRadio.value : '';
+
+            const paymentElem = document.getElementById('payment_method');
+            const payment_method = paymentElem ? paymentElem.value : 'card';
+
+            const idCompra = 'client-' + Date.now();
+
+            return {
+                deliveryAddress: address,
+                products: products,
+                transport_type: transport_type,
+                payment_method: payment_method,
+                idCompra: idCompra
+            };
+        };
+
+        const showOrderResult = (data, status) => {
+            if (!orderStatusCard) return;
+            orderStatusCard.classList.remove('hidden');
+            orderStatusCard.innerHTML = '';
+            if (status >= 200 && status < 300) {
+                const pedido = data.pedido || {};
+                const reserva = data.reserva || {};
+                const envio = data.envio || {};
+                orderStatusCard.innerHTML = `
+                    <h3>Pedido confirmado</h3>
+                    <p><strong>Pedido ID:</strong> ${pedido.id || '-'} - <strong>Estado:</strong> ${pedido.estado || '-'}</p>
+                    <p><strong>Total:</strong> ${pedido.total || '-'}</p>
+                    <p><strong>Reserva stock:</strong> ${reserva.id || reserva.reservationId || JSON.stringify(reserva)}</p>
+                    <p><strong>Envío / Tracking:</strong> ${envio.id || envio.trackingId || JSON.stringify(envio)}</p>
+                `;
+            } else {
+                orderStatusCard.innerHTML = `
+                    <h3>Error procesando pedido</h3>
+                    <p>${data && data.error ? data.error : 'Ocurrió un error al procesar el pedido.'}</p>
+                    <pre style="white-space:pre-wrap">${data && data.detail ? JSON.stringify(data.detail) : ''}</pre>
+                `;
+            }
+            orderStatusCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        };
+
+        const sendCheckout = async (e) => {
+            e && e.preventDefault();
+            const btn = e ? (e.currentTarget || e.target) : null;
+            if (btn) btn.disabled = true;
+            const payload = buildPayload();
+            if (!payload.products || payload.products.length === 0) {
+                alert('El carrito está vacío.');
+                if (btn) btn.disabled = false;
+                return;
+            }
+
+            try {
+                const csrf = getCookie('csrftoken');
+                const resp = await fetch('/pedidos/api/checkout/confirm/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrf || ''
+                    },
+                    body: JSON.stringify(payload)
+                });
+                const data = await resp.json().catch(() => ({}));
+                showOrderResult(data, resp.status);
+            } catch (err) {
+                showOrderResult({ error: 'Error de red', detail: String(err) }, 500);
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        };
+
+        // Conectar al botón de confirmación (id `confirm-order` o clase `.btn-confirm`) y al submit del formulario
+        const confirmBtn = document.getElementById('confirm-order') || document.querySelector('.btn-confirm');
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', sendCheckout);
+        }
+
+        // Si el botón final es un `submit` dentro del formulario, capturamos el submit
+        const checkoutForm = document.querySelector('.checkout-card form') || document.querySelector('form');
+        if (checkoutForm) {
+            checkoutForm.addEventListener('submit', sendCheckout);
+        }
     });
