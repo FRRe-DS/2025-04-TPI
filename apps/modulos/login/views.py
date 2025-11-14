@@ -5,8 +5,36 @@ import logging
 log = logging.getLogger("app")
 
 # Create your views here.
+from urllib.parse import urlencode
+
+from django.conf import settings
+from django.contrib.auth import logout
+from django.urls import reverse
+from allauth.socialaccount.adapter import get_adapter
 
 
+def _build_keycloak_registration_url(request):
+    """Devuelve la URL de registro de Keycloak con la redirección correcta."""
+    try:
+        provider = get_adapter().get_provider(request, 'keycloak')
+        return provider.get_login_url(
+            request,
+            auth_params={'kc_action': 'register'},
+        )
+    except Exception:  # pragma: no cover - fallback defensivo
+        log.exception("No se pudo generar la URL de registro de Keycloak desde allauth.")
+        params = {
+            'client_id': settings.KEYCLOAK_CLIENT_ID,
+            'response_type': 'code',
+            'scope': ' '.join(settings.KEYCLOAK_SCOPE),
+            'redirect_uri': settings.KEYCLOAK_LOGIN_REDIRECT_URI,
+            'kc_action': 'register',
+        }
+        base_url = (
+            f"{settings.KEYCLOAK_SERVER_URL.rstrip('/')}/"
+            "protocol/openid-connect/auth"
+        )
+        return f"{base_url}?{urlencode(params)}"
 
 def login_view (request):
     
