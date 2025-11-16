@@ -21,11 +21,25 @@ SECRET_KEY = 'django-insecure-8io^32_+@-bwm(q8@jdflu^^6-_btdevo5p%1uc%l*od_70i=2
 # TIP: en producción, usá variables de entorno.
 
 # la url utilizada
-SITE_URL = os.getenv("SITE_URL", "http://127.0.0.1:8000")
+SITE_URL = os.getenv("SITE_URL", "http://127.0.0.1:8000").rstrip("/")
 # SITE_URL = "https://tcc25.myqnapcloud.com"
 
 DEBUG = os.getenv("DEBUG", "true").lower() == "true"
 ALLOWED_HOSTS = ['*']
+
+_extra_csrf_origins = [
+    origin.strip()
+    for origin in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
+    if origin.strip()
+]
+CSRF_TRUSTED_ORIGINS = sorted(
+    {
+        SITE_URL,
+        "http://127.0.0.1:8085",
+        "http://localhost:8085",
+        *_extra_csrf_origins,
+    }
+)
 
 # ==========================================
 # CONFIGURACIÓN DE APIS MOCK/EXTERNAS
