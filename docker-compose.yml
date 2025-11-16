@@ -12,6 +12,7 @@ services:
       STOCK_API_BASE_URL: http://nginx:8085
       LOGISTICA_API_BASE_URL: http://nginx:8085
       KEYCLOAK_BASE_URL: http://keycloak:8080
+      KEYCLOAK_PUBLIC_BASE_URL: http://localhost:8080
     command: >
       /bin/sh -c "python manage.py collectstatic --noinput &&
       gunicorn Main.wsgi:application --bind 0.0.0.0:8000 --workers 3"

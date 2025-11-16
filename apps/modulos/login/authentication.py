@@ -44,14 +44,31 @@ class KeycloakJWTAuthentication(authentication.BaseAuthentication):
             signing_key = _JWK_CLIENT.get_signing_key_from_jwt(token)
             decode_kwargs: Dict[str, Any] = {
                 "algorithms": ["RS256"],
-                "issuer": settings.KEYCLOAK_SERVER_URL.rstrip("/"),
+                "issuer": settings.KEYCLOAK_ISSUER_URL.rstrip("/"),
+                "options": {"verify_aud": False},
             }
+            decoded = jwt.decode(token, signing_key.key, **decode_kwargs)
             audience = getattr(settings, "KEYCLOAK_EXPECTED_AUDIENCE", None)
             if audience:
-                decode_kwargs["audience"] = audience
-            else:
-                decode_kwargs["options"] = {"verify_aud": False}
-            return jwt.decode(token, signing_key.key, **decode_kwargs)
+                expected = (
+                    [audience]
+                    if isinstance(audience, str)
+                    else [item for item in audience if item]
+                )
+                token_targets = []
+                token_aud = decoded.get("aud")
+                if isinstance(token_aud, str):
+                    token_targets.append(token_aud)
+                elif isinstance(token_aud, (list, tuple, set)):
+                    token_targets.extend([str(value) for value in token_aud if value])
+                fallback_ids = [
+                    decoded.get("azp"),
+                    decoded.get("client_id"),
+                ]
+                token_targets.extend([value for value in fallback_ids if value])
+                if not token_targets or not any(target in expected for target in token_targets):
+                    raise exceptions.AuthenticationFailed("Token inválido para este recurso (audiencia).")
+            return decoded
         except jwt.ExpiredSignatureError as exc:
             log.info("Token expirado recibido desde Keycloak.")
             raise exceptions.AuthenticationFailed("Token expirado.") from exc

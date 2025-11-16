@@ -36,7 +36,7 @@ def _build_keycloak_login_url(request, next_url=None):
         if redirect_url:
             params['state'] = redirect_url
         base_url = (
-            f"{settings.KEYCLOAK_SERVER_URL.rstrip('/')}/"
+            f"{settings.KEYCLOAK_PUBLIC_SERVER_URL.rstrip('/')}/"
             "protocol/openid-connect/auth"
         )
         return f"{base_url}?{urlencode(params)}"
@@ -67,7 +67,7 @@ def _build_keycloak_registration_url(request, next_url=None):
         if redirect_url:
             params['state'] = redirect_url
         base_url = (
-            f"{settings.KEYCLOAK_SERVER_URL.rstrip('/')}/"
+            f"{settings.KEYCLOAK_PUBLIC_SERVER_URL.rstrip('/')}/"
             "protocol/openid-connect/auth"
         )
         return f"{base_url}?{urlencode(params)}"
@@ -115,7 +115,7 @@ def registro_view(request):
 def cerrar_sesion(request):
     logout(request)
     base_logout_url = (
-        f"{settings.KEYCLOAK_SERVER_URL.rstrip('/')}/"
+        f"{settings.KEYCLOAK_PUBLIC_SERVER_URL.rstrip('/')}/"
         "protocol/openid-connect/logout"
     )
     params = {

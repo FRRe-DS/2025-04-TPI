@@ -264,6 +264,7 @@ LOGGING = {
 # Configuración de Keycloak OIDC
 # =============================
 KEYCLOAK_BASE_URL = os.getenv("KEYCLOAK_BASE_URL", "http://localhost:8080")
+KEYCLOAK_PUBLIC_BASE_URL = os.getenv("KEYCLOAK_PUBLIC_BASE_URL", KEYCLOAK_BASE_URL)
 KEYCLOAK_REALM = os.getenv("KEYCLOAK_REALM", "ds-2025-realm")
 KEYCLOAK_CLIENT_ID = os.getenv("KEYCLOAK_CLIENT_ID", "grupo-04")
 KEYCLOAK_CLIENT_SECRET = os.getenv("KEYCLOAK_CLIENT_SECRET", "")
@@ -276,6 +277,11 @@ KEYCLOAK_SERVER_URL = os.getenv(
     "KEYCLOAK_SERVER_URL",
     f"{KEYCLOAK_BASE_URL.rstrip('/')}/realms/{KEYCLOAK_REALM}",
 )
+KEYCLOAK_PUBLIC_SERVER_URL = os.getenv(
+    "KEYCLOAK_PUBLIC_SERVER_URL",
+    f"{KEYCLOAK_PUBLIC_BASE_URL.rstrip('/')}/realms/{KEYCLOAK_REALM}",
+)
+KEYCLOAK_ISSUER_URL = os.getenv("KEYCLOAK_ISSUER_URL", KEYCLOAK_PUBLIC_SERVER_URL)
 KEYCLOAK_JWKS_URL = os.getenv(
     "KEYCLOAK_JWKS_URL",
     f"{KEYCLOAK_SERVER_URL.rstrip('/')}/protocol/openid-connect/certs",
@@ -313,7 +319,7 @@ KEYCLOAK_LOGOUT_REDIRECT_URI = os.getenv(
     "",
 ).strip() or None
 _keycloak_settings = {
-    'server_url': KEYCLOAK_SERVER_URL,
+    'server_url': KEYCLOAK_PUBLIC_SERVER_URL,
     'use_pkce': KEYCLOAK_USE_PKCE,
     'auth_params': {
         'scope': ' '.join(KEYCLOAK_SCOPE),
