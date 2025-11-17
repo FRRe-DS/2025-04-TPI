@@ -1,6 +1,8 @@
 {
   "realm": "ds-2025-realm",
   "enabled": true,
+  "registrationAllowed": true,
+  "loginWithEmailAllowed": true,
 
   "defaultDefaultClientScopes": [
     "usuarios:read",
