@@ -104,19 +104,19 @@
       "enabled": true,
       "clientAuthenticatorType": "client-secret",
       "secret": "6be1bec1-9472-499f-ab37-883d78f57829",
-      "rootUrl": "http://localhost:8085",
+      "rootUrl": "http://localhost/compras",
       "baseUrl": "/",
-      "adminUrl": "http://localhost:8085/",
+      "adminUrl": "http://localhost/compras/",
       "redirectUris": [
-        "http://localhost:8085/accounts/oidc/keycloak/login/callback/",
-        "http://127.0.0.1:8085/accounts/oidc/keycloak/login/callback/"
+        "http://localhost/compras/accounts/oidc/keycloak/login/callback/",
+        "http://127.0.0.1/compras/accounts/oidc/keycloak/login/callback/"
       ],
       "webOrigins": [
-        "http://localhost:8085",
-        "http://127.0.0.1:8085"
+        "http://localhost",
+        "http://127.0.0.1"
       ],
       "attributes": {
-        "post.logout.redirect.uris": "http://localhost:8085/*"
+        "post.logout.redirect.uris": "http://localhost/compras/*"
       },
       "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": true,

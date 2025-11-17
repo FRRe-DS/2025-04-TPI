@@ -6,11 +6,12 @@ services:
     env_file:
       - .env
     environment:
-      SITE_URL: http://localhost:8085
-      BASE_API_URL: http://nginx:8085/api/
-      PRODUCTOS_API_BASE_URL: http://nginx:8085
-      STOCK_API_BASE_URL: http://nginx:8085
-      LOGISTICA_API_BASE_URL: http://nginx:8085
+      SITE_URL: http://localhost
+      APP_PATH_PREFIX: /compras
+      BASE_API_URL: http://nginx/compras/api/
+      PRODUCTOS_API_BASE_URL: http://nginx/compras
+      STOCK_API_BASE_URL: http://nginx/compras
+      LOGISTICA_API_BASE_URL: http://nginx/compras
       KEYCLOAK_BASE_URL: http://keycloak:8080
       KEYCLOAK_PUBLIC_BASE_URL: http://localhost:8080
     command: >
@@ -29,7 +30,7 @@ services:
   nginx:
     image: nginx:1.27-alpine
     ports:
-      - "8085:8085"
+      - "80:80"
     depends_on:
       - django
     volumes:
