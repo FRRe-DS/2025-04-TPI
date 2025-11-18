@@ -187,12 +187,12 @@ def obtener_cliente_pedidos(**kwargs: Any) -> PedidoAPIClient:
 
 
 def obtener_cliente_logistica() -> LogisticsClient:
-    base_por_defecto = getattr(settings, "base_url_api", "http://localhost:8000/api/")
-    base_url = getattr(settings, "LOGISTICS_API_BASE_URL", base_por_defecto) or base_por_defecto
+
+    base_url = getattr(settings, "LOGISTICA_API_BASE_URL","http://localhost:8000/api/") 
     return LogisticsClient(base_url=base_url, token_provider=_service_token_provider())
 
 
 def obtener_cliente_stock() -> StockClient:
-    base_por_defecto = getattr(settings, "base_url_api", "http://localhost:8000/api/")
-    base_url = getattr(settings, "STOCK_API_BASE_URL", base_por_defecto) or base_por_defecto
+    
+    base_url = getattr(settings, "STOCK_API_BASE_URL", "http://localhost:8000/api/") 
     return StockClient(base_url=base_url, token_provider=_service_token_provider())
