@@ -121,9 +121,9 @@ class CarritoAPIClient(BaseAPIClient):
 
 
 
-def obtener_cliente_carrito(**kwargs: Any) -> CarritoAPIClient:
-    """Helper para instanciar el cliente con la configuración del proyecto."""
+def obtener_cliente_stock(**kwargs: Any)  -> StockClient:
+    """Helper para instanciar el cliente de stock con la configuración del proyecto."""
     base_por_defecto = getattr(settings, "base_url_api", "http://localhost:8000/api/")
     base_url = getattr(settings, "CARRITO_API_BASE_URL", base_por_defecto) or base_por_defecto
     kwargs.setdefault("use_service_token", True)
-    return CarritoAPIClient(base_url=base_url, **kwargs)
+    return StockClient(base_url=base_url, **kwargs)

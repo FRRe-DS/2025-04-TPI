@@ -19,9 +19,9 @@ class ItemCarrito(models.Model):
 
 	def __str__(self):
 		return f"Producto {self.producto_id} x{self.cantidad}"
-from django.db import models
+
 
 # Create your models here.
 
-# fran no muestra esto!
+# fran muestra esto!!!!
 

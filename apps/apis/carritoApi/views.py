@@ -4,7 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from .models import Carrito, ItemCarrito
 from .serializer import CartSerializer
-from .client import obtener_cliente_carrito
+from .client import obtener_cliente_stock
 
 
 class CartViewSet(viewsets.ViewSet):
@@ -15,8 +15,14 @@ class CartViewSet(viewsets.ViewSet):
         carrito, _ = Carrito.objects.get_or_create(usuario=request.user)
         items = carrito.items.all()
         product_ids = [item.producto_id for item in items]
-        carrito_client = obtener_cliente_carrito()
-        productos = carrito_client.obtener_productos_por_ids(product_ids)
+        stock_client = obtener_cliente_stock()
+        productos = []
+        for id in product_ids:            
+            producto = stock_client.obtener_producto(id)
+            if not producto:
+                return Response({"error": "Error al obtener productos del carrito", "code": "PRODUCT_FETCH_ERROR"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            productos.append(producto)
+        
         serializer = CartSerializer(carrito, context={'productos': productos})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -28,8 +34,8 @@ class CartViewSet(viewsets.ViewSet):
         quantity = request.data.get('quantity', 1)
         if not product_id or int(quantity) < 1:
             return Response({"error": "Datos inválidos", "code": "INVALID_DATA"}, status=status.HTTP_400_BAD_REQUEST)
-        carrito_client = obtener_cliente_carrito()
-        producto = carrito_client.obtener_productos_por_ids([product_id]).get(product_id)
+        stock_client = obtener_cliente_stock()
+        producto = stock_client.obtener_producto(product_id)
         if not producto:
             return Response({"error": "Producto no encontrado", "code": "PRODUCT_NOT_FOUND"}, status=status.HTTP_404_NOT_FOUND)
         item, created = ItemCarrito.objects.get_or_create(carrito=carrito, producto_id=product_id)
@@ -52,7 +58,7 @@ class CartViewSet(viewsets.ViewSet):
             return Response({"error": "Producto no encontrado en el carrito", "code": "CART_ITEM_NOT_FOUND"}, status=status.HTTP_404_NOT_FOUND)
 
     def destroy(self, request, pk=None):
-        """DELETE /api/shopcart/{productId}/ - Remover producto o vaciar carrito"""
+        """DELETE /api/shopcart/{productId}/ - Remover producto o vaciar carrito""" #a que usuario?? pensalo
         carrito, _ = Carrito.objects.get_or_create(usuario=request.user) #no se necesita pq es autenticacion
         if pk:
             try:
