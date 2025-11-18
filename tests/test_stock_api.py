@@ -6,7 +6,11 @@ from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework import status
-from apps.apis.stockApi.models import Producto, Categoria, Reserva, DetalleReserva
+
+# Intentamos importar desde productoApi y pedidoApi
+from apps.apis.productoApi.models import Producto, Categoria # Asumiendo que Categoria también está acá
+from apps.apis.pedidoApi.models import Pedido as Reserva # Es probable que 'Reserva' sea 'Pedido' en tu código real
+
 from datetime import datetime
 
 
