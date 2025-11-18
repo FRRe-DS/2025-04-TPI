@@ -10,7 +10,7 @@ from rest_framework.permissions import IsAuthenticated
 from utils.apiCliente import APIError
 
 from apps.apis.carritoApi.models import Carrito
-from apps.apis.carritoApi.client import obtener_cliente_carrito
+
 
 from .client import obtener_cliente_logistica, obtener_cliente_stock
 from .models import Pedido, DireccionEnvio, DetallePedido
