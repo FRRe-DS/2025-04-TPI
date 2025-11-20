@@ -107,7 +107,7 @@ class ProductoAPIClient(BaseAPIClient):
 
 def obtener_cliente_productos(**kwargs: Any) -> ProductoAPIClient:
     """Helper para instanciar ``ProductoAPIClient`` usando la configuración del proyecto."""
-    base_por_defecto = getattr(settings, "PRODUCTOS_API_BASE_URL", getattr(settings, "SITE_URL", "http://localhost:8000"))
-    base_url = getattr(settings, "PRODUCTOS_API_BASE_URL", base_por_defecto) or base_por_defecto
+    base_url = getattr(settings, "PRODUCTOS_API_BASE_URL", "http://localhost:8000") 
     kwargs.setdefault("use_service_token", True)
+    
     return ProductoAPIClient(base_url=base_url, **kwargs)
