@@ -6,6 +6,8 @@
 
 **¿Necesitas instrucciones detalladas?** → Lee **[INSTALACION.md](INSTALACION.md)** (completo)
 
+**Ver responsabilidades** → Lee **[Responsabilidades](./documentacion/Responsabilidades/)** (completo)
+
 ### Instalación Express:
 
 ```bash
