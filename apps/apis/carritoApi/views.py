@@ -1,4 +1,5 @@
 from rest_framework import viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
@@ -17,6 +18,7 @@ class CartViewSet(viewsets.ViewSet):
         
         # Verificar si usamos APIs externas o modo mock/desarrollo
         use_external_apis = not getattr(settings, 'USE_MOCK_APIS', True)
+        use_mock_apis = not use_external_apis
         productos = []
         
         if use_external_apis:
@@ -33,12 +35,9 @@ class CartViewSet(viewsets.ViewSet):
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR
                     )
                 productos.append(producto)
-        else:
-            # Modo DESARROLLO/MOCK: No llamar a APIs externas
-            # El serializer solo mostrará los IDs de productos y cantidades
-            pass
         
-        serializer = CartSerializer(carrito, context={'productos': productos})
+        # Pasar flag de mock al serializer para que use datos mock si es necesario
+        serializer = CartSerializer(carrito, context={'productos': productos, 'use_mock_apis': use_mock_apis})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def create(self, request):
@@ -90,8 +89,8 @@ class CartViewSet(viewsets.ViewSet):
             return Response({"error": "Producto no encontrado en el carrito", "code": "CART_ITEM_NOT_FOUND"}, status=status.HTTP_404_NOT_FOUND)
 
     def destroy(self, request, pk=None):
-        """DELETE /api/shopcart/{productId}/ - Remover producto o vaciar carrito""" #a que usuario?? pensalo
-        carrito, _ = Carrito.objects.get_or_create(usuario=request.user) #no se necesita pq es autenticacion
+        """DELETE /api/shopcart/{productId}/ - Remover producto del carrito"""
+        carrito, _ = Carrito.objects.get_or_create(usuario=request.user)
         if pk:
             try:
                 item = ItemCarrito.objects.get(carrito=carrito, producto_id=pk)
@@ -100,7 +99,13 @@ class CartViewSet(viewsets.ViewSet):
             except ItemCarrito.DoesNotExist:
                 return Response({"error": "Producto no encontrado en el carrito", "code": "CART_ITEM_NOT_FOUND"}, status=status.HTTP_404_NOT_FOUND)
         else:
-            carrito.items.all().delete()
-            return Response({"message": "Carrito vaciado"}, status=status.HTTP_200_OK)
+            return Response({"error": "Debe especificar un producto para eliminar", "code": "MISSING_PRODUCT_ID"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['delete'], url_path='clear')
+    def clear(self, request):
+        """DELETE /api/shopcart/clear/ - Vaciar todo el carrito"""
+        carrito, _ = Carrito.objects.get_or_create(usuario=request.user)
+        carrito.items.all().delete()
+        return Response({"message": "Carrito vaciado"}, status=status.HTTP_200_OK)
         
         

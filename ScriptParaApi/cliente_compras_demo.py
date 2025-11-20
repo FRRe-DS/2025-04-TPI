@@ -237,11 +237,11 @@ def actualizar_item_carrito(token: str, item_id: int, cantidad: int) -> Dict[str
 
 def vaciar_carrito(token: str) -> None:
     """
-    DELETE /api/shopcart/
+    DELETE /api/shopcart/clear/
     
     Vacía completamente el carrito del usuario.
     """
-    url = build_url("/api/shopcart/")
+    url = build_url("/api/shopcart/clear/")
     resp = requests.delete(url, headers=auth_headers(token))
     
     if resp.status_code not in (200, 204):
@@ -431,6 +431,12 @@ def flujo_demo():
     try:
         productos = listar_productos(token)
         print(f"   ✅ Se encontraron {len(productos)} productos desde la API")
+        
+        # Si la API devuelve lista vacía, usar productos mock
+        if not productos:
+            print("   ⚠️  La API devolvió 0 productos")
+            print("   📦 Usando productos mock para continuar la prueba...")
+            productos = crear_productos_prueba_mock()
         
         # Mostrar primeros 3 productos
         for i, prod in enumerate(productos[:3], 1):
