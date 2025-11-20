@@ -86,6 +86,9 @@ services:
   stock-backend:
     image: ghcr.io/frre-ds/backend-stock-g02:latest
     container_name: stock-backend
+    networks:
+      - app_net
+
     expose:
       - "4000"
     environment:
@@ -99,11 +102,13 @@ services:
       KEYCLOAK_CLIENT_SECRET: grupo-02-secret
     depends_on:
       - keycloak
-    networks:
-      - app_net
   ## FIN STOCK G2
 
 volumes:
   static_data:
   media_data:
   keycloak_db_data:
+
+networks:
+  app_net:
+    driver: bridge
