@@ -27,8 +27,8 @@ services:
       KEYCLOAK_SERVICE_CLIENT_ID: grupo-04
       KEYCLOAK_SERVICE_CLIENT_SECRET: 6be1bec1-9472-499f-ab37-883d78f57829
       KEYCLOAK_SERVICE_SCOPE: productos:read
-      STOCK_API_BASE_URL: http://nginx/stock
-      LOGISTICA_API_BASE_URL: http://nginx/logistica
+      STOCK_API_BASE_URL: http://nginx/stock/
+      LOGISTICA_API_BASE_URL: http://nginx/logistica/
     command: >
       /bin/sh -c "python manage.py collectstatic --noinput &&
       gunicorn Main.wsgi:application --bind 0.0.0.0:8000 --workers 3"
