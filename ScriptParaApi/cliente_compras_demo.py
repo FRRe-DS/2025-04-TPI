@@ -237,11 +237,11 @@ def actualizar_item_carrito(token: str, item_id: int, cantidad: int) -> Dict[str
 
 def vaciar_carrito(token: str) -> None:
     """
-    DELETE /api/shopcart/
+    DELETE /api/shopcart/clear/
     
     Vacía completamente el carrito del usuario.
     """
-    url = build_url("/api/shopcart/")
+    url = build_url("/api/shopcart/clear/")
     resp = requests.delete(url, headers=auth_headers(token))
     
     if resp.status_code not in (200, 204):
@@ -341,6 +341,63 @@ def cancelar_pedido(token: str, pedido_id: int) -> None:
 
 
 # ==========================
+# CREAR DATOS DE PRUEBA
+# ==========================
+
+def crear_productos_prueba_mock() -> List[Dict[str, Any]]:
+    """
+    Crea productos de prueba en memoria (mock) que simulan
+    lo que devolvería la API de productos.
+    
+    NOTA: En un entorno de producción real, estos datos vendrían 
+    de la API de Stock/Productos. Aquí los simulamos para poder
+    testear sin depender de la base de datos.
+    """
+    return [
+        {
+            "id": 1,
+            "nombre": "Laptop Dell XPS 13",
+            "descripcion": "Laptop de alto rendimiento con procesador Intel i7",
+            "precio": 1299.99,
+            "stock_disponible": 15,
+            "categoria": "Electrónica"
+        },
+        {
+            "id": 2,
+            "nombre": "iPhone 15 Pro",
+            "descripcion": "Smartphone Apple última generación",
+            "precio": 999.00,
+            "stock_disponible": 25,
+            "categoria": "Electrónica"
+        },
+        {
+            "id": 3,
+            "nombre": "Samsung Galaxy S24",
+            "descripcion": "Smartphone Samsung con pantalla AMOLED",
+            "precio": 849.00,
+            "stock_disponible": 30,
+            "categoria": "Electrónica"
+        },
+        {
+            "id": 4,
+            "nombre": "AirPods Pro",
+            "descripcion": "Auriculares inalámbricos con cancelación de ruido",
+            "precio": 249.00,
+            "stock_disponible": 50,
+            "categoria": "Electrónica"
+        },
+        {
+            "id": 5,
+            "nombre": "Zapatillas Nike Air",
+            "descripcion": "Calzado deportivo de alto rendimiento",
+            "precio": 89.99,
+            "stock_disponible": 40,
+            "categoria": "Deportes"
+        }
+    ]
+
+
+# ==========================
 # FLUJO DE PRUEBA COMPLETO
 # ==========================
 
@@ -355,7 +412,7 @@ def flujo_demo():
     # 1. AUTENTICACIÓN CON KEYCLOAK
     # ============================================================
     print("\n📝 Paso 1: Autenticación con Keycloak")
-    print(f"   Usuario: {TEST_USERNAME}")
+    print(f"   Cliente: {KEYCLOAK_CLIENT_ID}")
     
     try:
         auth_result = obtener_token_keycloak(TEST_USERNAME, TEST_PASSWORD)
@@ -367,27 +424,37 @@ def flujo_demo():
         return
     
     # ============================================================
-    # 2. LISTAR PRODUCTOS
+    # 2. LISTAR PRODUCTOS (o usar productos mock)
     # ============================================================
-    print("\n📦 Paso 2: Listando productos disponibles")
+    print("\n📦 Paso 2: Obteniendo productos disponibles")
     
     try:
         productos = listar_productos(token)
-        print(f"   ✅ Se encontraron {len(productos)} productos")
+        print(f"   ✅ Se encontraron {len(productos)} productos desde la API")
         
+        # Si la API devuelve lista vacía, usar productos mock
         if not productos:
-            print("   ⚠️  No hay productos disponibles. No se puede continuar.")
-            return
+            print("   ⚠️  La API devolvió 0 productos")
+            print("   📦 Usando productos mock para continuar la prueba...")
+            productos = crear_productos_prueba_mock()
         
         # Mostrar primeros 3 productos
         for i, prod in enumerate(productos[:3], 1):
             print(f"   {i}. ID: {prod.get('id')} - {prod.get('nombre', 'N/A')} - ${prod.get('precio', 0)}")
         
-        producto_prueba = productos[0]
-        
     except Exception as e:
-        print(f"   ❌ Error al listar productos: {e}")
+        print(f"   ⚠️  Error al listar productos desde la API: {e}")
+        print("   📦 Usando productos mock para continuar la prueba...")
+        productos = crear_productos_prueba_mock()
+        
+        for i, prod in enumerate(productos[:3], 1):
+            print(f"   {i}. ID: {prod.get('id')} - {prod.get('nombre', 'N/A')} - ${prod.get('precio', 0)}")
+    
+    if not productos:
+        print("   ❌ No hay productos disponibles (ni de API ni mock). No se puede continuar.")
         return
+    
+    producto_prueba = productos[0]
     
     # ============================================================
     # 3. VACIAR CARRITO (por las dudas)

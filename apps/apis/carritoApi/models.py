@@ -23,5 +23,5 @@ class ItemCarrito(models.Model):
 
 # Create your models here.
 
-# fran muestra esto!!!!
+# fran no muestra esto!
 

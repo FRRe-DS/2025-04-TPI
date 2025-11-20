@@ -16,10 +16,31 @@ class CartItemSerializer(serializers.ModelSerializer):
 
 	def get_product(self, obj):
 		# Primero intenta obtener el producto del contexto (batch)
-		productos = self.context.get('productos')
-		if productos and obj.producto_id in productos:
-			return productos[obj.producto_id]
-		# Si no hay productos en contexto, hace la petición individual
+		productos = self.context.get('productos', [])
+		if productos:
+			# Si productos es una lista, buscar por ID
+			if isinstance(productos, list):
+				for p in productos:
+					if p.get('id') == obj.producto_id:
+						return p
+			# Si productos es un dict indexado por ID
+			elif isinstance(productos, dict) and obj.producto_id in productos:
+				return productos[obj.producto_id]
+		
+		# Si USE_MOCK_APIS está activo, devolver datos mock
+		use_mock = self.context.get('use_mock_apis', False)
+		if use_mock:
+			# Productos mock básicos
+			precios_mock = {
+				1: {"id": 1, "nombre": "Laptop Dell XPS 13", "precio": 1299.99},
+				2: {"id": 2, "nombre": "iPhone 15 Pro", "precio": 999.00},
+				3: {"id": 3, "nombre": "Samsung Galaxy S24", "precio": 849.00},
+				4: {"id": 4, "nombre": "AirPods Pro", "precio": 249.00},
+				5: {"id": 5, "nombre": "Zapatillas Nike Air", "precio": 89.99},
+			}
+			return precios_mock.get(obj.producto_id, {"id": obj.producto_id, "nombre": f"Producto {obj.producto_id}", "precio": 99.99})
+		
+		# Si no hay productos en contexto y no es mock, hace la petición individual
 		try:
 			stock_client = StockClient(base_url=settings.STOCK_API_BASE)
 			producto = stock_client.obtener_producto(obj.producto_id)
