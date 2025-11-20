@@ -389,10 +389,11 @@ class PedidoViewSet(viewsets.ModelViewSet):
             items_carrito.delete()
 
             serializer = self.get_serializer(pedido)
-            # Devolver datos en el nivel superior para compatibilidad con el script
-            response_data = serializer.data
-            response_data["message"] = "Pedido creado exitosamente"
-            return Response(response_data, status=status.HTTP_201_CREATED)
+            return Response({
+                "message": "Pedido creado exitosamente",
+                "pedido_id": pedido.id,
+                "pedido": serializer.data
+            }, status=status.HTTP_201_CREATED)
 
     # --------------------------------------------------------------
     # Tracking de envíos (integración Compras ↔ Logística)
