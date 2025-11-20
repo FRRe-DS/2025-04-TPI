@@ -15,7 +15,7 @@ services:
       PRODUCTOS_API_BASE_URL: http://nginx/compras
       
       # Configuración de modo Mock/Producción
-      USE_MOCK_APIS: "true"
+      USE_MOCK_APIS: "false"
       
       # Configuración de Keycloak
       KEYCLOAK_BASE_URL: http://keycloak:8080
