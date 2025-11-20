@@ -33,6 +33,7 @@ services:
       - "80:80"
     depends_on:
       - django
+      - stock-backend
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - static_data:/app/staticfiles:ro
@@ -81,14 +82,10 @@ services:
         condition: service_healthy
     networks:
       - app_net
-
- ## STOCK G2
+#Stock G2
   stock-backend:
     image: ghcr.io/frre-ds/backend-stock-g02:latest
     container_name: stock-backend
-    networks:
-      - app_net
-
     expose:
       - "4000"
     environment:
@@ -102,7 +99,10 @@ services:
       KEYCLOAK_CLIENT_SECRET: grupo-02-secret
     depends_on:
       - keycloak
-  ## FIN STOCK G2
+    networks:
+      - app_net
+
+  # FIN STOCK G2
 
 volumes:
   static_data:
