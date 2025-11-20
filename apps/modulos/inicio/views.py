@@ -1,9 +1,40 @@
 from django.shortcuts import render
 import logging
 from time import perf_counter
-from apps.apis.productoApi.client import obtener_cliente_productos
+from apps.apis.productoApi.client import ProductoAPIClient, obtener_cliente_productos
+import unicodedata
 
 logger = logging.getLogger(__name__)
+
+import unicodedata, re
+
+def normalize(text):
+    if not text:
+        return ""
+    # convertir todo a string siempre
+    text = str(text)
+
+    # eliminar caracteres invisibles
+    text = (
+        text.replace("\u00a0", " ")   # NO-BREAK SPACE
+            .replace("\u200b", "")   # ZERO WIDTH SPACE
+            .replace("\u200c", "")
+            .replace("\u200d", "")
+            .replace("\ufeff", "")
+            .strip()
+    )
+
+    # bajar a minúsculas
+    text = text.lower()
+
+    # normalizar tildes
+    text = unicodedata.normalize("NFD", text)
+    text = "".join(c for c in text if unicodedata.category(c) != "Mn")
+
+    # colapsar múltiples espacios
+    text = re.sub(r"\s+", " ", text)
+
+    return text
 
 
 def inicio_view(request):
@@ -23,11 +54,11 @@ def inicio_view(request):
     except Exception:
         page = 1
     try:
-        limit = int(request.GET.get("limit", 20))
+        limit = int(request.GET.get("limit", 18))
         if limit < 1:
-            limit = 20
+            limit = 18
     except Exception:
-        limit = 20
+        limit = 18
 
     productos = []
     pagination_context = {}
@@ -35,39 +66,24 @@ def inicio_view(request):
     try:
         client = obtener_cliente_productos()
         
-        logger.debug("Llamando a StockClient.listar_productos page=%s limit=%s filtros=%s", page, limit, {
+        logger.debug("Llamando a StockClient.listar_productos con limit=5000 para obtener todos los resultados filtrados=%s", {
             "busqueda": termino_busqueda,
             "categoria": categoria_filtrada,
             "marca": marca_filtrada,
         })
-        resultado = client.listar_productos(page=page, limit=limit)
-        print('resultados',resultado,)
+        
+        # Una sola llamada: traer muchos productos para aplicar filtros y paginar localmente
+        resultado = client.listar_productos(
+            page=1, 
+            limit=5000,
+            search=termino_busqueda,
+        )
+        
 
         elapsed = perf_counter() - start
         logger.info("Stock API listar_productos respondió en %.3fs", elapsed)
         if isinstance(resultado, dict) and "data" in resultado:
             productos_raw = resultado.get("data") or []
-            pag = resultado.get("pagination") or resultado.get("meta") or {}
-            total = pag.get("total") or pag.get("total_count") or pag.get("count")
-            per_page = pag.get("per_page") or pag.get("limit") or limit
-            current = pag.get("page") or page
-            total_pages = None
-            try:
-                if total and per_page:
-                    total_pages = max(1, (int(total) + int(per_page) - 1) // int(per_page))
-            except Exception:
-                logger.warning("No se pudo calcular total_pages para paginación: total=%s per_page=%s", total, per_page)
-                total_pages = None
-            pagination_context = {
-                "total": total,
-                "per_page": per_page,
-                "current_page": current,
-                "total_pages": total_pages,
-                "has_next": (total_pages is not None and current < total_pages) or bool(pag.get("next")),
-                "has_prev": (current and current > 1) or bool(pag.get("previous")),
-                "next_page": (current + 1) if (total_pages is None or current < total_pages) else None,
-                "prev_page": (current - 1) if (current and current > 1) else None,
-            }
         else:
             if resultado is None:
                 logger.warning("Stock API devolvió None en listar_productos")
@@ -102,41 +118,89 @@ def inicio_view(request):
             })
         logger.info("Obtenidos %d productos (raw=%d) desde Stock API", len(productos), len(productos_raw))
     except Exception as e:
-        # No fallback a datos hardcodeados: registramos y devolvemos lista vacía
         logger.exception("Error obteniendo productos desde Stock API para path=%s user=%s: %s", request.get_full_path(), getattr(request, "user", None), e)
         productos = []
 
-    # aplicar filtros locales
+    # Extraer categorías y marcas disponibles ANTES de filtrar
+    categorias_disponibles = sorted({p.get("categoria", "") for p in productos if p.get("categoria", "")})
+    marcas_disponibles = sorted({p.get("marca", "") for p in productos if p.get("marca", "")})
+
+    # =============================
+    #     FILTROS CON NORMALIZE
+    # =============================
+
+    q = normalize(termino_busqueda)
+    cat_f = normalize(categoria_filtrada)
+    marca_f = normalize(marca_filtrada)
+
     def _filtrar(prod):
-        if termino_busqueda:
-            if termino_busqueda.lower() not in prod.get("nombre", "").lower() and termino_busqueda.lower() not in prod.get("descripcion", "").lower():
-                return False
-        if categoria_filtrada and prod.get("categoria") != categoria_filtrada:
+        nombre = normalize(prod.get("nombre", ""))        
+        marca = normalize(prod.get("marca", ""))
+        categoria = normalize(prod.get("categoria", ""))
+
+        # búsqueda general
+        if q and (q not in nombre and q not in marca):
             return False
-        if marca_filtrada and prod.get("marca") != marca_filtrada:
+
+        # categoría
+        if cat_f and cat_f != categoria:
             return False
+
+        # marca
+        if marca_f and marca_f != marca:
+            return False
+
+        # precio
         try:
-            if precio_minimo and float(precio_minimo) > prod.get("precio", 0):
+            precio = prod.get("precio", 0)
+            if precio_minimo and float(precio_minimo) > precio:
                 return False
-            if precio_maximo and float(precio_maximo) < prod.get("precio", 0):
+            if precio_maximo and float(precio_maximo) < precio:
                 return False
-        except Exception:
+        except:
             pass
+
         return True
 
     productos = [p for p in productos if _filtrar(p)]
 
-    logger.debug("Filtros aplicados: busqueda=%s categoria=%s marca=%s precio_min=%s precio_max=%s -> %d resultados", termino_busqueda, categoria_filtrada, marca_filtrada, precio_minimo, precio_maximo, len(productos))
+    # Paginación manual después de filtrar
+    total_resultados = len(productos)
+    per_page = limit  # 18 productos por página
+    total_pages = max(1, (total_resultados + per_page - 1) // per_page) if total_resultados > 0 else 1
+    
+    # Validar página
+    if page < 1:
+        page = 1
+    if page > total_pages:
+        page = total_pages
+    
+    # Calcular índices para slice
+    start_idx = (page - 1) * per_page
+    end_idx = start_idx + per_page
+    productos_pagina = productos[start_idx:end_idx]
+    
+    pagination_context = {
+        "total": total_resultados,
+        "per_page": per_page,
+        "current_page": page,
+        "total_pages": total_pages,
+        "has_next": page < total_pages,
+        "has_prev": page > 1,
+        "next_page": page + 1 if page < total_pages else None,
+        "prev_page": page - 1 if page > 1 else None,
+    }
 
-    categorias_disponibles = sorted({producto.get("categoria", "") for producto in productos})
-    marcas_disponibles = sorted({producto.get("marca", "") for producto in productos})
+    logger.debug(
+        "Filtros aplicados: busqueda=%s categoria=%s marca=%s precio_min=%s precio_max=%s -> %d resultados (página %d de %d)",
+        termino_busqueda, categoria_filtrada, marca_filtrada, precio_minimo, precio_maximo, total_resultados, page, total_pages
+    )
 
-    # carrito: por ahora no hay datos locales hardcodeados; usar vacío o cargar desde sesión/BD más adelante
     carrito = []
     total_carrito = 0.0
 
     context = {
-        "productos": productos,
+        "productos": productos_pagina,
         "categorias": categorias_disponibles,
         "marcas": marcas_disponibles,
         "filtros": {
@@ -146,11 +210,11 @@ def inicio_view(request):
             "precio_minimo": precio_minimo,
             "precio_maximo": precio_maximo,
         },
-        "cantidad_resultados": len(productos),
+        "cantidad_resultados": total_resultados,
         "carrito": carrito,
         "total_carrito": total_carrito,
         "pagination": pagination_context,
     }
-    logger.info("Renderizando inicio.html con %d productos (page=%s, limit=%s)", len(productos), page, limit)
-    return render(request, "inicio.html", context)
 
+    logger.info("Renderizando inicio.html con %d productos de %d totales (página %d de %d)", len(productos_pagina), total_resultados, page, total_pages)
+    return render(request, "inicio.html", context)
