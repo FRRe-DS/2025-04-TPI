@@ -6,15 +6,29 @@ services:
     env_file:
       - .env
     environment:
+      # URLs y configuración general
       SITE_URL: http://localhost
       APP_PATH_PREFIX: /compras
+      
+      # URLs de APIs
       BASE_API_URL: http://nginx/compras/api/
       PRODUCTOS_API_BASE_URL: http://nginx/compras
-      STOCK_API_BASE_URL: http://nginx/compras
-      LOGISTICA_API_BASE_URL: http://nginx/compras
+      
+      # Configuración de modo Mock/Producción
       USE_MOCK_APIS: "true"
+      
+      # Configuración de Keycloak
       KEYCLOAK_BASE_URL: http://keycloak:8080
       KEYCLOAK_PUBLIC_BASE_URL: http://localhost:8080
+      KEYCLOAK_REALM: ds-2025-realm
+      KEYCLOAK_CLIENT_ID: grupo-04
+      KEYCLOAK_CLIENT_SECRET: 6be1bec1-9472-499f-ab37-883d78f57829
+      KEYCLOAK_EXPECTED_AUDIENCE: account,grupo-04
+      KEYCLOAK_SERVICE_CLIENT_ID: grupo-04
+      KEYCLOAK_SERVICE_CLIENT_SECRET: 6be1bec1-9472-499f-ab37-883d78f57829
+      KEYCLOAK_SERVICE_SCOPE: productos:read
+      STOCK_API_BASE_URL: http://nginx/stock
+      LOGISTICA_API_BASE_URL: http://nginx/logistica
     command: >
       /bin/sh -c "python manage.py collectstatic --noinput &&
       gunicorn Main.wsgi:application --bind 0.0.0.0:8000 --workers 3"
