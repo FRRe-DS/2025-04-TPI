@@ -11,6 +11,7 @@ from .views import PedidoViewSet
 history_list = PedidoViewSet.as_view({'get': 'history'})
 history_detail = PedidoViewSet.as_view({'get': 'history_detail'})
 cancelar = PedidoViewSet.as_view({'delete': 'cancelar'})
+checkout = PedidoViewSet.as_view({'post': 'crear_desde_carrito'})
 
 urlpatterns = [
     # GET /api/shopcart/history - Ver historial de pedidos
@@ -23,6 +24,7 @@ urlpatterns = [
         'delete': 'cancelar'
     }), name='shopcart-history-detail'),
     
-    # POST /api/shopcart/checkout - Confirmar pedido (pendiente de implementar)
-    # path('shopcart/checkout', checkout, name='shopcart-checkout'),
+    # POST /api/shopcart/checkout - Confirmar pedido desde carrito
+    path('shopcart/checkout', checkout, name='shopcart-checkout'),
 ]
+
