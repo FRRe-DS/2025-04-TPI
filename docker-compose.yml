@@ -81,15 +81,29 @@ services:
         condition: service_healthy
     networks:
       - app_net
-  
 
-
-
+ ## STOCK G2
+  stock-backend:
+    image: ghcr.io/frre-ds/backend-stock-g02:latest
+    container_name: stock-backend
+    expose:
+      - "4000"
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      SUPABASE_URL: https://tznhwyxgkbkhrfjldmfz.supabase.co
+      SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR6bmh3eXhna2JraHJmamxkbWZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk0MzcxNjMsImV4cCI6MjA3NTAxMzE2M30.DOcz00RPnRBdDj3rWq9MMT5KUDmcA21KJtT2CWNHwZU
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: ds-2025-realm
+      KEYCLOAK_CLIENT_ID: grupo-02
+      KEYCLOAK_CLIENT_SECRET: grupo-02-secret
+    depends_on:
+      - keycloak
+    networks:
+      - app_net
+  ## FIN STOCK G2
 
 volumes:
   static_data:
   media_data:
   keycloak_db_data:
-
-networks:
-  app_net:
