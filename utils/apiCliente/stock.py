@@ -15,9 +15,9 @@ class StockClient(BaseAPIClient):
             params["q"] = q
         if categoriaId:
             params["categoriaId"] = categoriaId
-        return self.get("/productos", params=params, expected_status=200)
+        return self.get("/api/product/", params=params, expected_status=200)
     def obtener_producto(self, productoId: int):
-        return self.get(f"/productos/{productoId}", expected_status=200)
+        return self.get(f"/api/product/{productoId}/", expected_status=200)
 
     def reservar_stock(self, idCompra: str, usuarioId: int, productos: list):
         """

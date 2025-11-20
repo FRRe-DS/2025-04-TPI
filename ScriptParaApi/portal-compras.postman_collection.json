@@ -37,6 +37,65 @@
       "name": "Auth",
       "item": [
         {
+          "name": "Get Keycloak Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set(\"TOKEN\", jsonData.access_token);",
+                  "    console.log(\"Token guardado: \" + jsonData.access_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8080/realms/ds-2025-realm/protocol/openid-connect/token"
+            },
+            "description": "Obtiene un token de acceso desde Keycloak usando client credentials.",
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "client_id",
+                  "value": "grupo-04",
+                  "type": "text"
+                },
+                {
+                  "key": "client_secret",
+                  "value": "6be1bec1-9472-499f-ab37-883d78f57829",
+                  "type": "text"
+                },
+                {
+                  "key": "grant_type",
+                  "value": "client_credentials",
+                  "type": "text"
+                },
+                {
+                  "key": "scope",
+                  "value": "productos:read",
+                  "type": "text"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
           "name": "Login",
           "request": {
             "method": "POST",

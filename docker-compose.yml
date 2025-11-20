@@ -12,6 +12,7 @@ services:
       PRODUCTOS_API_BASE_URL: http://nginx/compras
       STOCK_API_BASE_URL: http://nginx/compras
       LOGISTICA_API_BASE_URL: http://nginx/compras
+      USE_MOCK_APIS: "true"
       KEYCLOAK_BASE_URL: http://keycloak:8080
       KEYCLOAK_PUBLIC_BASE_URL: http://localhost:8080
     command: >
