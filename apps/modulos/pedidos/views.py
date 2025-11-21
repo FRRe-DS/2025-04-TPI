@@ -25,26 +25,59 @@ def inicio_view(request):
 
 def checkout_view(request):
     """Pantalla de checkout para los pedidos."""
-    tipos_envio = [
-        {
-            "id": "domicilio",
-            "nombre": "Envío a domicilio",
-            "descripcion": "Recibe tus productos directamente en tu domicilio.",
-            "costo": "$5.000",
-        },
-        {
-            "id": "retiro_sucursal",
-            "nombre": "Retiro en sucursal",
-            "descripcion": "Retira tu pedido en nuestra sucursal más cercana.",
-            "costo": "Sin costo",
-        },
-        {
-            "id": "envio_expres",
-            "nombre": "Envío exprés",
-            "descripcion": "Recibe tu pedido en menos de 24 horas.",
-            "costo": "$8.500",
-        },
-    ]
+    from utils.apiCliente.logistica import LogisticsClient
+    from utils.apiCliente.base import APIError
+    
+    tipos_envio = []
+    
+    # Intentar obtener métodos de transporte desde la API de Logística
+    try:
+        log_client = LogisticsClient(settings.LOGISTICA_API_BASE_URL)
+        response = log_client.get_transport_methods()
+        
+        # La API devuelve: {"transportMethods": [{"id": 1, "name": "Air Transport", "type": "air", "estimatedDays": "1-3"}, ...]}
+        metodos = response.get('transportMethods', [])
+        
+        # Mapeo de íconos para cada tipo de transporte
+        iconos_transporte = {
+            'air': '✈️',
+            'sea': '🚢',
+            'road': '🚚',
+            'rail': '🚆',
+        }
+        
+        for metodo in metodos:
+            transport_type = metodo.get('type', 'road')
+            estimated_days = metodo.get('estimatedDays', 'A confirmar')
+            
+            tipos_envio.append({
+                "id": transport_type,
+                "nombre": metodo.get('name', f'Envío {transport_type}'),
+                "descripcion": f"Entrega estimada en {estimated_days} días.",
+                "costo": "A calcular en checkout",
+                "dias_estimados": estimated_days,
+                "icono": iconos_transporte.get(transport_type, '📦'),
+            })
+            
+        logger.info(f"Métodos de transporte obtenidos desde API: {len(tipos_envio)}")
+        
+    except APIError as e:
+        logger.warning(f"No se pudieron obtener métodos de transporte de la API: {e}")
+        # Fallback a métodos básicos si falla la API
+       
+    except Exception as e:
+        logger.exception(f"Error inesperado al obtener métodos de transporte: {e}")
+        # Fallback a método básico en caso de error inesperado
+        tipos_envio = [
+            {
+                "id": "road",
+                "nombre": "Envío estándar",
+                "descripcion": "Entrega en 2-5 días hábiles.",
+                "costo": "A calcular",
+                "dias_estimados": "2-5",
+                "icono": "🚚",
+            },
+        ]
 
     context = {
         "tipos_envio": tipos_envio,

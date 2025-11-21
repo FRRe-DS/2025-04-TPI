@@ -1,11 +1,11 @@
 @echo off
 setlocal
 
-echo [1/3] Deteniendo contenedores y limpiando vol�menes...
+echo [1/3] Deteniendo contenedores y limpiando volumenes...
 docker compose down --volumes
 if errorlevel 1 goto :error
 
-echo [2/3] Construyendo im�genes...
+echo [2/3] Construyendo imagenes...
 docker compose build
 if errorlevel 1 goto :error
 
@@ -18,5 +18,5 @@ goto :eof
 
 :error
 echo.
-echo [ERROR] Ocurri� un problema al ejecutar Docker Compose. Revis� los mensajes anteriores.
+echo [ERROR] Ocurrio un problema al ejecutar Docker Compose. Revisa los mensajes anteriores.
 exit /b 1
