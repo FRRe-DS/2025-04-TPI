@@ -373,10 +373,10 @@ class IntegracionTester:
         
         try:
             headers = {'Authorization': f'Bearer {self.token}'}
-            print(f"📡 POST {self.compras_api}/pedidos/desde-carrito/")
+            print(f"📡 POST {self.compras_api}/shopcart/checkout")
             
             response = requests.post(
-                f"{self.compras_api}/pedidos/desde-carrito/",
+                f"{self.compras_api}/shopcart/checkout",
                 headers=headers
             )
             

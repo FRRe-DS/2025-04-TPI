@@ -341,7 +341,7 @@ class PedidoViewSet(viewsets.ModelViewSet):
                 for item in items_carrito:
                     try:
                         producto = stock_client.obtener_producto(item.producto_id)
-                        precio_unitario = Decimal(str(producto.get("price", 0)))
+                        precio_unitario = Decimal(str(producto.get("precio", 0)))
                         nombre_producto = producto.get("name", f"Producto {item.producto_id}")
                     except Exception:
                         # Si falla la API, usar valores por defecto
