@@ -157,7 +157,7 @@ services:
       mysql:
         condition: service_healthy
     expose:
-      - "3000"
+      - "3010"
     networks:
       - app_net
   # FIN LOGÍSTICA G3
