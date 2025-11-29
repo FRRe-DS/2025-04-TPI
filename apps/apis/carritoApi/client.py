@@ -124,16 +124,12 @@ class CarritoAPIClient(BaseAPIClient):
 def obtener_cliente_stock(**kwargs: Any)  -> StockClient:
     """Helper para instanciar el cliente de stock con la configuración del proyecto.
     
-    NOTA: Este cliente se usa para llamar a la API de productos INTERNA (misma app).
-    Por eso usa localhost:8000 para evitar deadlock con Nginx.
-    
-    Si en el futuro necesitás conectar con una API de Stock EXTERNA real,
-    creá una función separada (ej: obtener_cliente_stock_externo) que use
-    la configuración de STOCK_API_BASE_URL del settings.
+    NOTA: Ahora usa la API de Stock EXTERNA a través de Nginx.
+    La configuración viene de STOCK_API_BASE_URL en settings (http://nginx/stock/).
     """
-    # Para llamadas internas a la API de productos (misma app Django),
-    # usar localhost:8000 para evitar deadlock con Nginx
-    base_url = kwargs.pop("base_url", "http://localhost:8000")
+    # Usar la configuración de Stock API desde settings (apunta a http://nginx/stock/)
+    base_por_defecto = getattr(settings, "STOCK_API_BASE_URL", "http://nginx/stock/")
+    base_url = kwargs.pop("base_url", None) or getattr(settings, "STOCK_API_BASE_URL", base_por_defecto)
     
     # Extraer use_service_token de kwargs antes de pasarlos a StockClient
     use_service_token = kwargs.pop("use_service_token", True)
