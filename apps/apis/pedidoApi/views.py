@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 from django.db import transaction
+from django.conf import settings
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -10,7 +11,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from utils.apiCliente import APIError
 
 from apps.apis.carritoApi.models import Carrito
-from apps.apis.carritoApi.client import obtener_cliente_carrito
+
 
 from .client import obtener_cliente_logistica, obtener_cliente_stock
 from .models import Pedido, DireccionEnvio, DetallePedido
@@ -255,47 +256,57 @@ class PedidoViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["post"], url_path="checkout")
     def crear_desde_carrito(self, request):
-        """POST /api/shopcart/checkout - Crear pedido desde carrito mock (sin autenticación)"""
+        """POST /api/shopcart/checkout - Crear pedido desde carrito del usuario autenticado"""
         
-        # Obtener items mock del payload
-        items = request.data.get("items", [])
-
-        if not items:
+        # Verificar autenticación
+        if not request.user.is_authenticated:
             return Response(
-                {"error": "El carrito mock está vacío", "code": "EMPTY_CART"},
+                {"error": "Autenticación requerida", "code": "AUTHENTICATION_REQUIRED"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+        
+        # Obtener carrito del usuario
+        try:
+            carrito = Carrito.objects.get(usuario=request.user)
+        except Carrito.DoesNotExist:
+            return Response(
+                {"error": "No tienes un carrito activo", "code": "CART_NOT_FOUND"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        
+        # Verificar que el carrito tenga items
+        items_carrito = carrito.items.all()
+        if not items_carrito.exists():
+            return Response(
+                {"error": "El carrito está vacío", "code": "EMPTY_CART"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         # Extraer datos de dirección del payload
-        nombre_receptor = request.data.get("nombre_receptor")
-        tipo_transporte = request.data.get("tipo_transporte", "domicilio")
+        direccion_envio = request.data.get("direccion_envio")
+        metodo_pago = request.data.get("metodo_pago", "tarjeta")
         
-        # Validar datos mínimos comunes
-        if not nombre_receptor:
+        # Validar que se haya enviado la dirección
+        if not direccion_envio:
             return Response(
-                {"error": "Falta nombre del receptor", "code": "MISSING_DATA"},
+                {"error": "Falta dirección de envío", "code": "MISSING_ADDRESS"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        
-        # Validar dirección solo si NO es retiro en sucursal
-        if tipo_transporte not in ['retiro_sucursal', 'demo_tracking']:
-            calle = request.data.get("calle")
-            ciudad = request.data.get("ciudad")
-            cp = request.data.get("cp")
-            if not all([calle, ciudad, cp]):
-                return Response(
-                    {"error": "Faltan datos de dirección", "code": "MISSING_DATA"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-        else:
-            # Para retiro en sucursal, dirección es opcional
-            calle = request.data.get("calle", "")
-            ciudad = request.data.get("ciudad", "")
-            cp = request.data.get("cp", "")
 
-        departamento = request.data.get("departamento", "")
-        telefono = request.data.get("telefono", "")
-        costo_envio = Decimal(str(request.data.get("costo_envio", 0)))
+        # Extraer campos de la dirección (formato del script: string simple)
+        # Si direccion_envio es un string, parsearlo; si es dict, usarlo directamente
+        if isinstance(direccion_envio, str):
+            # Formato simple: "Calle Falsa 123, Resistencia, Chaco, Argentina"
+            calle = direccion_envio
+            ciudad = "Ciudad por defecto"
+            cp = "0000"
+            nombre_receptor = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
+        else:
+            # Formato estructurado (dict)
+            calle = direccion_envio.get("calle", "")
+            ciudad = direccion_envio.get("ciudad", "")
+            cp = direccion_envio.get("codigo_postal", "")
+            nombre_receptor = direccion_envio.get("nombre_receptor") or f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
 
         # Crear dirección de envío
         with transaction.atomic():
@@ -304,47 +315,82 @@ class PedidoViewSet(viewsets.ModelViewSet):
                 ciudad=ciudad,
                 codigo_postal=cp,
                 nombre_receptor=nombre_receptor,
-                provincia=departamento,
-                telefono=telefono,
+                provincia=direccion_envio.get("provincia", "") if isinstance(direccion_envio, dict) else "",
+                telefono=direccion_envio.get("telefono", "") if isinstance(direccion_envio, dict) else "",
                 pais="Argentina",
             )
 
             # Crear pedido
             pedido = Pedido.objects.create(
-                usuario=None,   # Modo mock, sin autenticación
+                usuario=request.user,
                 direccion_envio=direccion,
                 estado=Pedido.Estado.PENDIENTE,
-                tipo_transporte=tipo_transporte,
+                tipo_transporte=request.data.get("tipo_transporte", "domicilio"),
                 total=Decimal("0.00")
             )
 
-            # Procesar items mock y crear detalles de pedido
+            # Obtener precios de productos desde la API de Stock (si USE_MOCK_APIS=False)
+            # o usar precios por defecto (si USE_MOCK_APIS=True)
+            use_external_apis = not getattr(settings, 'USE_MOCK_APIS', True)
             total = Decimal("0.00")
-            for item in items:
-                nombre = item.get("nombre", "Producto sin nombre")
-                cantidad = int(item.get("cantidad", 1))
-                precio = Decimal(str(item.get("precio", 0)))
-                subtotal = cantidad * precio
-                total += subtotal
+            
+            if use_external_apis:
+                # Modo PRODUCCIÓN: Obtener precios reales de Stock API
+                stock_client = obtener_cliente_stock()
+                
+                for item in items_carrito:
+                    try:
+                        producto = stock_client.obtener_producto(item.producto_id)
+                        precio_unitario = Decimal(str(producto.get("price", 0)))
+                        nombre_producto = producto.get("name", f"Producto {item.producto_id}")
+                    except Exception:
+                        # Si falla la API, usar valores por defecto
+                        precio_unitario = Decimal("0.00")
+                        nombre_producto = f"Producto {item.producto_id}"
+                    
+                    subtotal = precio_unitario * item.cantidad
+                    total += subtotal
 
-                DetallePedido.objects.create(
-                    pedido=pedido,
-                    producto_id=item.get("id", 0),
-                    nombre_producto=nombre,
-                    cantidad=cantidad,
-                    precio_unitario=precio,
-                )
+                    DetallePedido.objects.create(
+                        pedido=pedido,
+                        producto_id=item.producto_id,
+                        nombre_producto=nombre_producto,
+                        cantidad=item.cantidad,
+                        precio_unitario=precio_unitario,
+                    )
+            else:
+                # Modo DESARROLLO/MOCK: Usar precios ficticios
+                precios_mock = {
+                    1: Decimal("1299.99"),
+                    2: Decimal("999.00"),
+                    3: Decimal("849.00"),
+                    4: Decimal("249.00"),
+                    5: Decimal("89.99"),
+                }
+                
+                for item in items_carrito:
+                    precio_unitario = precios_mock.get(item.producto_id, Decimal("99.99"))
+                    subtotal = precio_unitario * item.cantidad
+                    total += subtotal
 
-            # 🔥 Agregar costo de envío al total
-            total += costo_envio
+                    DetallePedido.objects.create(
+                        pedido=pedido,
+                        producto_id=item.producto_id,
+                        nombre_producto=f"Producto {item.producto_id}",
+                        cantidad=item.cantidad,
+                        precio_unitario=precio_unitario,
+                    )
 
             # Actualizar total del pedido
             pedido.total = total
             pedido.save(update_fields=["total"])
+            
+            # Vaciar el carrito después de crear el pedido
+            items_carrito.delete()
 
             serializer = self.get_serializer(pedido)
             return Response({
-                "message": "ok",
+                "message": "Pedido creado exitosamente",
                 "pedido_id": pedido.id,
                 "pedido": serializer.data
             }, status=status.HTTP_201_CREATED)

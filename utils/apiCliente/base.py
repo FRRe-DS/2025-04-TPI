@@ -1,7 +1,7 @@
 # utils/api_clients/base.py
 from __future__ import annotations
 
-from typing import  Any, Dict, Optional
+from typing import Any, Dict, Optional, Callable
 import requests
 
 # Excepción personalizada para errores de API
@@ -15,13 +15,23 @@ class APIError(Exception):
 
 # Cliente base para consumir APIs RESTful
 class BaseAPIClient:
-    def __init__( self, base_url: str, timeout: float = 8.0, max_retries: int = 2, default_headers: Optional[Dict[str, str]] = None, token: str | None = None, api_key: str | None = None,):
+    def __init__(
+        self,
+        base_url: str,
+        timeout: float = 8.0,
+        max_retries: int = 2,
+        default_headers: Optional[Dict[str, str]] = None,
+        token: str | None = None,
+        api_key: str | None = None,
+        token_provider: Optional[Callable[[], str]] = None,
+    ):
         if not base_url:
             raise ValueError("base_url es requerido")
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self.max_retries = max_retries
         self.session = requests.Session()
+        self._token_provider = token_provider
 
         self.default_headers: Dict[str, str] = {"Accept": "application/json"}
         if default_headers:
@@ -36,19 +46,48 @@ class BaseAPIClient:
             path = "/" + path
         return self.base_url + path
 
-    def request( self, method: str, path: str, *, params: Dict[str, Any] | None = None, json: Any = None, expected_status: int | tuple[int, ...] | None = 200, headers: Dict[str, str] | None = None,) -> Any:
+    def _obtain_authorization_header(self) -> str | None:
+        if not self._token_provider:
+            return None
+        try:
+            token = self._token_provider()
+        except Exception as exc:  # pragma: no cover - infraestructura externa
+            raise APIError("No se pudo obtener un token dinámico para la llamada HTTP.") from exc
+        if token:
+            if token.lower().startswith("bearer "):
+                return token
+            return f"Bearer {token}"
+        return None
+
+    def request(
+        self,
+        method: str,
+        path: str,
+        *,
+        params: Dict[str, Any] | None = None,
+        json: Any = None,
+        expected_status: int | tuple[int, ...] | None = 200,
+        headers: Dict[str, str] | None = None,
+    ) -> Any:
         url = self._url(path)
         _headers = dict(self.default_headers)
         if headers:
             _headers.update(headers)
+        if "Authorization" not in _headers:
+            auth_header = self._obtain_authorization_header()
+            if auth_header:
+                _headers["Authorization"] = auth_header
 
         last_exc: Exception | None = None
         for attempt in range(self.max_retries + 1):
             try:
                 resp = self.session.request(
-                    method.upper(), url,
-                    params=params, json=json,
-                    headers=_headers, timeout=self.timeout
+                    method.upper(),
+                    url,
+                    params=params,
+                    json=json,
+                    headers=_headers,
+                    timeout=self.timeout,
                 )
                 # validar status esperado(s)
                 if expected_status is not None:

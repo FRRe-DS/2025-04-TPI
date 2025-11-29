@@ -1,6 +1,8 @@
 {
   "realm": "ds-2025-realm",
   "enabled": true,
+  "registrationAllowed": true,
+  "loginWithEmailAllowed": true,
 
   "defaultDefaultClientScopes": [
     "usuarios:read",
@@ -104,7 +106,20 @@
       "enabled": true,
       "clientAuthenticatorType": "client-secret",
       "secret": "6be1bec1-9472-499f-ab37-883d78f57829",
-      "redirectUris": ["*"],
+      "rootUrl": "http://localhost/compras",
+      "baseUrl": "/",
+      "adminUrl": "http://localhost/compras/",
+      "redirectUris": [
+        "http://localhost/compras/accounts/oidc/keycloak/login/callback/",
+        "http://127.0.0.1/compras/accounts/oidc/keycloak/login/callback/"
+      ],
+      "webOrigins": [
+        "http://localhost",
+        "http://127.0.0.1"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost/compras/*"
+      },
       "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": true,
       "protocol": "openid-connect"

@@ -98,43 +98,25 @@
                     <div class="checkout-step" data-step="1">
                         <h2>Selecciona un Método de Envío</h2>
                         <div class="shipping-options">
-                            <label for="tipo-envio-1">
-                                <input type="radio" name="tipo_envio" id="tipo-envio-1" value="domicilio" class="hidden" checked>
+                            {% for tipo in tipos_envio %}
+                            <label for="tipo-envio-{{ forloop.counter }}">
+                                <input type="radio" name="tipo_envio" id="tipo-envio-{{ forloop.counter }}" value="{{ tipo.id }}" class="hidden" {% if forloop.first %}checked{% endif %}>
                                 <div class="shipping-option">
                                     <div class="shipping-option__info">
                                         <div class="shipping-option__title">
-                                            <span>Envío a domicilio</span>
-                                            <span>$ 3.500</span>
+                                            <span>{% if tipo.icono %}{{ tipo.icono }} {% endif %}{{ tipo.nombre }}</span>
+                                            <span>{{ tipo.costo }}</span>
                                         </div>
-                                        <p class="shipping-option__description">Recibilo en 3 a 5 días hábiles.</p>
+                                        <p class="shipping-option__description">{{ tipo.descripcion }}</p>
+                                        {% if tipo.dias_estimados %}
+                                        <span class="shipping-option__badge" style="background-color: #e3f2fd; color: #1976d2;">⏱️ {{ tipo.dias_estimados }} días</span>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </label>
-                            <label for="tipo-envio-2">
-                                <input type="radio" name="tipo_envio" id="tipo-envio-2" value="retiro_sucursal" class="hidden">
-                                <div class="shipping-option">
-                                    <div class="shipping-option__info">
-                                        <div class="shipping-option__title">
-                                            <span>Retiro en sucursal</span>
-                                            <span>Gratis</span>
-                                        </div>
-                                        <p class="shipping-option__description">Disponible en 24hs en nuestro local.</p>
-                                    </div>
-                                </div>
-                            </label>
-                            <label for="tipo-envio-3">
-                                <input type="radio" name="tipo_envio" id="tipo-envio-3" value="demo_tracking" class="hidden">
-                                <div class="shipping-option shipping-option--demo">
-                                    <div class="shipping-option__info">
-                                        <div class="shipping-option__title">
-                                            <span>Demo con seguimiento</span>
-                                            <span>Gratis</span>
-                                        </div>
-                                        <p class="shipping-option__description">Explora una vista previa del seguimiento de pedidos y estado en tiempo real.</p>
-                                        <span class="shipping-option__badge">Demo interactiva</span>
-                                    </div>
-                                </div>
-                            </label>
+                            {% empty %}
+                            <p>No hay métodos de envío disponibles en este momento. Por favor, intenta más tarde.</p>
+                            {% endfor %}
                         </div>
                         <div class="step-navigation">
                             <button type="button" class="btn btn-secondary">Cancelar</button>
