@@ -8,7 +8,7 @@ class PedidosConfig(AppConfig):
     def ready(self):
         """Al iniciar la app, limpiar pedidos previos."""
         from django.db import connection
-        from django.db.utils import OperationalError
+        from django.db.utils import OperationalError, ProgrammingError
         
         try:
             # Verificar si las tablas existen
@@ -18,6 +18,6 @@ class PedidosConfig(AppConfig):
                 # Limpiar pedidos al reiniciar el servidor
                 Pedido.objects.all().delete()
                 print("✅ Pedidos limpios al reiniciar el servidor")
-        except OperationalError:
+        except (OperationalError, ProgrammingError):
             # Las tablas aún no existen (ej. durante migraciones)
             pass

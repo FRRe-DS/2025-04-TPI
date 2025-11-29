@@ -80,6 +80,12 @@ CSRF_TRUSTED_ORIGINS = sorted(
 # Cambiar USE_MOCK_APIS a False en producción para usar APIs reales
 USE_MOCK_APIS = os.getenv("USE_MOCK_APIS", "true").lower() == "true"
 
+# ==========================================
+# CONFIGURACIÓN DE BASE DE DATOS
+# ==========================================
+# Switch para elegir entre SQLite (desarrollo local) y PostgreSQL (producción/Docker)
+USE_SQLITE = os.getenv("USE_SQLITE", "true").lower() == "true"
+
 base_url_api = os.getenv("BASE_API_URL", build_public_url("/api/"))
 STOCK_API_BASE_URL = os.getenv("STOCK_API_BASE_URL", "http://localhost:8000")
 LOGISTICA_API_BASE_URL = os.getenv("LOGISTICA_API_BASE_URL", "http://localhost:8000")
@@ -169,12 +175,25 @@ TEMPLATES = [
 WSGI_APPLICATION = 'Main.wsgi.application'
 
 # Database
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Configuración dinámica: SQLite para desarrollo local, PostgreSQL para Docker
+if USE_SQLITE:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('POSTGRES_DB', 'compras_db'),
+            'USER': os.getenv('POSTGRES_USER', 'compras_user'),
+            'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'compras_password'),
+            'HOST': os.getenv('POSTGRES_HOST', 'postgres'),
+            'PORT': os.getenv('POSTGRES_PORT', '5432'),
+        }
+    }
 
 SECURE_SSL_REDIRECT = False
 

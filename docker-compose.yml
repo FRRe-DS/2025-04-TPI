@@ -1,4 +1,22 @@
 services:
+  # Base de datos PostgreSQL para Django
+  postgres:
+    image: postgres:16.2
+    container_name: compras_postgres
+    environment:
+      POSTGRES_DB: compras_db
+      POSTGRES_USER: compras_user
+      POSTGRES_PASSWORD: compras_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U compras_user -d compras_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app_net
+
   django:
     build:
       context: .
@@ -17,6 +35,14 @@ services:
       # Configuración de modo Mock/Producción
       USE_MOCK_APIS: "false"
       
+      # Configuración de Base de Datos
+      USE_SQLITE: "false"
+      POSTGRES_DB: compras_db
+      POSTGRES_USER: compras_user
+      POSTGRES_PASSWORD: compras_password
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      
       # Configuración de Keycloak
       KEYCLOAK_BASE_URL: http://keycloak:8080
       KEYCLOAK_PUBLIC_BASE_URL: http://localhost:8080
@@ -30,15 +56,27 @@ services:
       STOCK_API_BASE_URL: http://nginx/stock/
       LOGISTICA_API_BASE_URL: http://nginx/logistica/
     command: >
-      /bin/sh -c "python manage.py collectstatic --noinput &&
-      gunicorn Main.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+      /bin/sh -c "
+      echo '🔄 Esperando a PostgreSQL...' &&
+      sleep 5 &&
+      echo '📦 Aplicando migraciones...' &&
+      python manage.py migrate --noinput &&
+      echo '✅ Migraciones aplicadas' &&
+      echo '📁 Recolectando archivos estáticos...' &&
+      python manage.py collectstatic --noinput &&
+      echo '🚀 Iniciando Gunicorn...' &&
+      gunicorn Main.wsgi:application --bind 0.0.0.0:8000 --workers 3
+      "
     volumes:
       - static_data:/app/staticfiles
       - media_data:/app/media
     expose:
       - "8000"
     depends_on:
-      - keycloak
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
     networks:
       - app_net
 
@@ -163,6 +201,7 @@ services:
   # FIN LOGÍSTICA G3
 
 volumes:
+  postgres_data:
   mysql_data:
   static_data:
   media_data:
