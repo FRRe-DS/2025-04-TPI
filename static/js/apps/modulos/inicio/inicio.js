@@ -23,6 +23,74 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- LÓGICA PARA LAS TARJETAS DE PRODUCTO ---
     const productCards = document.querySelectorAll('.product-card');
     let productoActivo = null;
+    const apiBase = '/compras/api';
+
+    const getCSRFToken = () => {
+        const match = document.cookie.match(new RegExp('(^| )csrftoken=([^;]+)'));
+        if (match) return decodeURIComponent(match[2]);
+        return null;
+    };
+
+    async function fetchCarrito() {
+        try {
+            const resp = await fetch(`${apiBase}/shopcart/`, { credentials: 'include' });
+            if (!resp.ok) throw new Error(await resp.text());
+            const data = await resp.json();
+            const items = data.items || [];
+            // normalizamos a {id, cantidad}
+            return items.map((it) => ({
+                id: String(it.productId ?? it.producto_id ?? it.id),
+                cantidad: Number(it.quantity ?? it.cantidad ?? 1),
+                product: it.product || {},
+            }));
+        } catch (err) {
+            console.error('No se pudo obtener el carrito', err);
+            return [];
+        }
+    }
+
+    async function actualizarCantidadAPI(productId, cantidad) {
+        const csrf = getCSRFToken() || '';
+        console.log('Carrito: actualizar', { productId, cantidad });
+        try {
+            if (cantidad <= 0) {
+                const resp = await fetch(`${apiBase}/shopcart/${productId}/`, {
+                    method: 'DELETE',
+                    credentials: 'include',
+                    headers: { 'X-CSRFToken': csrf },
+                });
+                if (!resp.ok) {
+                    const msg = await resp.text();
+                    console.error('Carrito DELETE fallo', resp.status, msg);
+                    // Si el item no existe (404), solo sincronizamos sin lanzar error
+                    if (resp.status !== 404) throw new Error(msg);
+                }
+            } else {
+                const resp = await fetch(`${apiBase}/shopcart/`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrf,
+                    },
+                    body: JSON.stringify({ productId, quantity: cantidad }),
+                });
+                if (!resp.ok) {
+                    const msg = await resp.text();
+                    console.error('Carrito POST fallo', resp.status, msg);
+                    throw new Error(msg);
+                }
+            }
+        } catch (err) {
+            console.error('Error actualizando carrito', err);
+            throw err;
+        }
+    }
+
+    async function syncCarritoYDisparar() {
+        const carritoActual = await fetchCarrito();
+        document.dispatchEvent(new CustomEvent('cartUpdated', { detail: { carrito: carritoActual } }));
+    }
 
     function confirmarProductoActivo() {
         if (productoActivo === null) return;
@@ -78,6 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const minusBtn = actionsContainer.querySelector('.minus-btn');
         const quantityInput = actionsContainer.querySelector('.quantity-input');
         const quantitySelector = actionsContainer.querySelector('.quantity-selector');
+        const removeBtn = actionsContainer.querySelector('.remove-btn');
 
         function entrarModoEdicion() {
             if (productoActivo !== null && productoActivo !== productId) {
@@ -91,7 +160,13 @@ document.addEventListener('DOMContentLoaded', () => {
             confirmBtn.classList.remove('hidden');
         }
 
-        addToCartBtn.addEventListener('click', entrarModoEdicion);
+        addToCartBtn.addEventListener('click', async () => {
+            try {
+                await window.actualizarCantidadProducto(productId, 1);
+            } catch (e) {
+                alert('No se pudo agregar el producto al carrito. Revisa tu sesion.');
+            }
+        });
         quantitySelector.addEventListener('click', (e) => {
             if (e.target.classList.contains('quantity-btn')) entrarModoEdicion();
         });
@@ -115,6 +190,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         confirmBtn.addEventListener('click', confirmarProductoActivo);
+
+        if (removeBtn) {
+            removeBtn.addEventListener('click', async () => {
+                try {
+                    await window.actualizarCantidadProducto(productId, 0);
+                } catch (e) {
+                    alert('No se pudo eliminar el producto del carrito.');
+                }
+            });
+        }
     });
 
     document.addEventListener('cartUpdated', (e) => {
@@ -124,8 +209,22 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    const carritoInicial = JSON.parse(sessionStorage.getItem('carrito_demo')) || [];
-    productCards.forEach(card => {
-        actualizarVistaTarjeta(card, carritoInicial);
-    });
+    // Expone función global usada por las tarjetas
+    window.actualizarCantidadProducto = async (productId, cantidad) => {
+        try {
+            await actualizarCantidadAPI(productId, cantidad);
+            await syncCarritoYDisparar();
+        } catch (err) {
+            alert('No se pudo actualizar el carrito. Revisa tu sesión o intenta de nuevo.');
+        }
+    };
+
+    // Cargar carrito real y pintar vistas
+    (async () => {
+        const carrito = await fetchCarrito();
+        productCards.forEach(card => {
+            actualizarVistaTarjeta(card, carrito);
+        });
+        document.dispatchEvent(new CustomEvent('cartUpdated', { detail: { carrito } }));
+    })();
 });

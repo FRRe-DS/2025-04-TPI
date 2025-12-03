@@ -3,6 +3,8 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.db import transaction, models
 from django.shortcuts import render, redirect
+from django.urls import reverse
+from Main.settings import build_prefixed_path
 from django.db.models import Count
 from .models import Pedido, DetallePedido
 from django.http import JsonResponse
@@ -81,6 +83,10 @@ def checkout_view(request):
 
     context = {
         "tipos_envio": tipos_envio,
+        "checkout_endpoint": build_prefixed_path("/api/shopcart/checkout"),
+        "api_base": build_prefixed_path("/api").rstrip("/"),
+        "success_url": build_prefixed_path(reverse("pedidos:pago_exitoso")),
+        "failure_url": build_prefixed_path(reverse("pedidos:pago_fallido")),
     }
     return render(request, "checkout.html", context)
 

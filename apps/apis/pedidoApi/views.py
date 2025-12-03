@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
+import logging
 from django.db import transaction
 from django.conf import settings
 from rest_framework import status, viewsets
@@ -16,6 +17,9 @@ from apps.apis.carritoApi.models import Carrito
 from .client import obtener_cliente_logistica, obtener_cliente_stock
 from .models import Pedido, DireccionEnvio, DetallePedido
 from .serializer import PedidoSerializer
+
+
+logger = logging.getLogger(__name__)
 
 
 class PedidoViewSet(viewsets.ModelViewSet):
@@ -41,6 +45,148 @@ class PedidoViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         return super().destroy(request, *args, **kwargs)
+
+    def _confirmar_con_servicios_externos(self, *, pedido: Pedido, request, tipo_transporte: str):
+        """
+        Orquesta la confirmacion del pedido contra servicios externos:
+        1) Crea el envio en logistica.
+        2) Reserva stock en el servicio de Stock.
+
+        Devuelve (resultado, error_response). Si `error_response` no es None,
+        debe devolverse directamente desde la vista.
+        """
+        cliente_logistica = obtener_cliente_logistica()
+        cliente_stock = obtener_cliente_stock()
+
+        detalles_pedido = list(pedido.detalles.all())
+        productos_logistica = [
+            {"id": detalle.producto_id, "quantity": detalle.cantidad}
+            for detalle in detalles_pedido
+        ]
+        productos_stock = [
+            {"idProducto": detalle.producto_id, "cantidad": detalle.cantidad}
+            for detalle in detalles_pedido
+        ]
+
+        if pedido.total == Decimal("0.00"):
+            pedido.recalcular_total(guardar=True)
+
+        try:
+            logger.info(
+                "Checkout -> logistics payload order=%s user=%s transport=%s addr=%s products=%s",
+                pedido.id,
+                pedido.usuario_id or (request.user.id if request.user.is_authenticated else 0),
+                tipo_transporte,
+                pedido.direccion_envio.generar_datos_logistica(),
+                productos_logistica,
+            )
+            respuesta_envio = cliente_logistica.create_shipment(
+                order_id=pedido.id,
+                user_id=pedido.usuario_id or (request.user.id if request.user.is_authenticated else 0),
+                delivery_address=pedido.direccion_envio.generar_datos_logistica(),
+                transport_type=tipo_transporte,
+                products=productos_logistica,
+            )
+            logger.info("Checkout -> logistics response: %s", respuesta_envio)
+        except APIError as exc:
+            logger.error(
+                "Checkout -> logistics error status=%s url=%s payload=%s",
+                getattr(exc, "status", None),
+                getattr(exc, "url", None),
+                getattr(exc, "payload", None),
+            )
+            return (
+                None,
+                Response(
+                    {
+                        "detail": "Error al crear el envio.",
+                        "error": str(exc),
+                    },
+                    status=status.HTTP_502_BAD_GATEWAY,
+                ),
+            )
+
+        referencia_envio = (
+            respuesta_envio.get("id")
+            or respuesta_envio.get("shipping_id")
+            or respuesta_envio.get("reference")
+        )
+
+        if not referencia_envio:
+            return (
+                None,
+                Response(
+                    {"detail": "La API de envÇðos no devolviÇü un identificador vÇ­lido."},
+                    status=status.HTTP_502_BAD_GATEWAY,
+                ),
+            )
+
+        logger.info(
+            "Checkout -> stock payload order=%s user=%s productos=%s",
+            pedido.id,
+            pedido.usuario_id or (request.user.id if request.user.is_authenticated else 0),
+            productos_stock,
+        )
+        try:
+            respuesta_stock = cliente_stock.reservar_stock(
+                idCompra=str(pedido.id),
+                usuarioId=pedido.usuario_id or (request.user.id if request.user.is_authenticated else 0),
+                productos=productos_stock,
+            )
+            logger.info("Checkout -> stock response: %s", respuesta_stock)
+        except APIError as exc:
+            # Intentar cancelar el envio creado para no dejar residuos
+            try:
+                cliente_logistica.cancel_shipment(int(referencia_envio))
+            except Exception:
+                logger.exception("No se pudo cancelar el envio %s tras fallo de stock", referencia_envio)
+
+            logger.error(
+                "Checkout -> stock error status=%s url=%s payload=%s",
+                getattr(exc, "status", None),
+                getattr(exc, "url", None),
+                getattr(exc, "payload", None),
+            )
+            return (
+                None,
+                Response(
+                    {
+                        "detail": "Error al reservar el stock.",
+                        "error": str(exc),
+                    },
+                    status=status.HTTP_502_BAD_GATEWAY,
+                ),
+            )
+
+        referencia_stock = (
+            respuesta_stock.get("idReserva")
+            or respuesta_stock.get("reserva_id")
+            or respuesta_stock.get("id")
+        )
+
+        if not referencia_stock:
+            return (
+                None,
+                Response(
+                    {"detail": "La API de stock no devolviÇü un identificador de reserva."},
+                    status=status.HTTP_502_BAD_GATEWAY,
+                ),
+            )
+
+        pedido.marcar_confirmado(
+            referencia_envio=str(referencia_envio),
+            referencia_reserva_stock=str(referencia_stock),
+        )
+
+        return (
+            {
+                "reserva": respuesta_stock,
+                "envio": respuesta_envio,
+                "referencia_envio": referencia_envio,
+                "referencia_stock": referencia_stock,
+            },
+            None,
+        )
 
     @action(detail=True, methods=["post"], url_path="confirmar")
     def confirmar(self, request, pk=None):
@@ -74,89 +220,27 @@ class PedidoViewSet(viewsets.ModelViewSet):
         pedido.tipo_transporte = tipo_transporte
         pedido.save(update_fields=["tipo_transporte", "actualizado_en"])
 
-        cliente_logistica = obtener_cliente_logistica()
-        cliente_stock = obtener_cliente_stock()
-
-        detalles_pedido = list(pedido.detalles.all())
-        productos_logistica = [
-            {"id": detalle.producto_id, "quantity": detalle.cantidad}
-            for detalle in detalles_pedido
-        ]
-        productos_stock = [
-            {"idProducto": detalle.producto_id, "cantidad": detalle.cantidad}
-            for detalle in detalles_pedido
-        ]
-
-        if pedido.total == Decimal("0.00"):
-            pedido.recalcular_total(guardar=True)
-
-        try:
-            respuesta_envio = cliente_logistica.create_shipment(
-                order_id=pedido.id,
-                user_id=pedido.usuario_id or (request.user.id if request.user.is_authenticated else 0),
-                delivery_address=pedido.direccion_envio.generar_datos_logistica(),
-                transport_type=tipo_transporte,
-                products=productos_logistica,
-            )
-        except APIError as exc:
-            return Response(
-                {
-                    "detail": "Error al crear el envío.",
-                    "error": str(exc),
-                },
-                status=status.HTTP_502_BAD_GATEWAY,
-            )
-
-        referencia_envio = (
-            respuesta_envio.get("id")
-            or respuesta_envio.get("shipping_id")
-            or respuesta_envio.get("reference")
+        resultado, error_response = self._confirmar_con_servicios_externos(
+            pedido=pedido,
+            request=request,
+            tipo_transporte=tipo_transporte,
         )
-
-        if not referencia_envio:
-            return Response(
-                {
-                    "detail": "La API de envíos no devolvió un identificador válido.",
-                },
-                status=status.HTTP_502_BAD_GATEWAY,
-            )
-
-        try:
-            respuesta_stock = cliente_stock.reservar_stock(
-                idCompra=str(pedido.id),
-                usuarioId=pedido.usuario_id or (request.user.id if request.user.is_authenticated else 0),
-                productos=productos_stock,
-            )
-        except APIError as exc:
-            return Response(
-                {
-                    "detail": "Error al reservar el stock.",
-                    "error": str(exc),
-                },
-                status=status.HTTP_502_BAD_GATEWAY,
-            )
-
-        referencia_stock = (
-            respuesta_stock.get("idReserva")
-            or respuesta_stock.get("reserva_id")
-            or respuesta_stock.get("id")
-        )
-
-        if not referencia_stock:
-            return Response(
-                {
-                    "detail": "La API de stock no devolvió un identificador de reserva.",
-                },
-                status=status.HTTP_502_BAD_GATEWAY,
-            )
-
-        pedido.marcar_confirmado(
-            referencia_envio=referencia_envio,
-            referencia_reserva_stock=referencia_stock,
-        )
+        if error_response:
+            return error_response
 
         serializador = self.get_serializer(pedido)
-        return Response(serializador.data)
+        data = serializador.data
+        if resultado:
+            data = dict(data)
+            data.update(
+                {
+                    "referencia_envio": resultado.get("referencia_envio"),
+                    "referencia_stock": resultado.get("referencia_stock"),
+                    "envio": resultado.get("envio"),
+                    "reserva": resultado.get("reserva"),
+                }
+            )
+        return Response(data)
 
     @action(detail=True, methods=["delete"], url_path="cancelar")
     def cancelar(self, request, pk=None):
@@ -256,110 +340,127 @@ class PedidoViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["post"], url_path="checkout")
     def crear_desde_carrito(self, request):
-        """POST /api/shopcart/checkout - Crear pedido desde carrito del usuario autenticado"""
-        
-        # Verificar autenticación
+        """POST /api/shopcart/checkout - Crear y confirmar pedido del usuario autenticado."""
+
         if not request.user.is_authenticated:
             return Response(
-                {"error": "Autenticación requerida", "code": "AUTHENTICATION_REQUIRED"},
+                {"error": "Autenticacion requerida", "code": "AUTHENTICATION_REQUIRED"},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
-        
-        # Obtener carrito del usuario
+
         try:
             carrito = Carrito.objects.get(usuario=request.user)
+            items_carrito = list(carrito.items.all())
+            logger.info(
+                "Checkout: carrito obtenido para user=%s con %s items (ids=%s)",
+                request.user.id,
+                len(items_carrito),
+                [i.producto_id for i in items_carrito],
+            )
         except Carrito.DoesNotExist:
+            logger.warning("Checkout: carrito no encontrado para user=%s", request.user.id)
             return Response(
                 {"error": "No tienes un carrito activo", "code": "CART_NOT_FOUND"},
                 status=status.HTTP_404_NOT_FOUND,
             )
-        
-        # Verificar que el carrito tenga items
-        items_carrito = carrito.items.all()
-        if not items_carrito.exists():
+
+        if not items_carrito:
+            logger.warning("Checkout: carrito vacio para user=%s", request.user.id)
             return Response(
-                {"error": "El carrito está vacío", "code": "EMPTY_CART"},
+                {"error": "El carrito esta vacio", "code": "EMPTY_CART"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Extraer datos de dirección del payload
         direccion_envio = request.data.get("direccion_envio")
         metodo_pago = request.data.get("metodo_pago", "tarjeta")
-        
-        # Validar que se haya enviado la dirección
+        tipo_transporte = request.data.get("tipo_transporte", "domicilio")
+        logger.info(
+            "Checkout payload user=%s metodo_pago=%s tipo_transporte=%s direccion_envio_keys=%s",
+            request.user.id,
+            metodo_pago,
+            tipo_transporte,
+            list(direccion_envio.keys()) if isinstance(direccion_envio, dict) else type(direccion_envio),
+        )
+
         if not direccion_envio:
             return Response(
-                {"error": "Falta dirección de envío", "code": "MISSING_ADDRESS"},
+                {"error": "Falta direccion de envio", "code": "MISSING_ADDRESS"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Extraer campos de la dirección (formato del script: string simple)
-        # Si direccion_envio es un string, parsearlo; si es dict, usarlo directamente
         if isinstance(direccion_envio, str):
-            # Formato simple: "Calle Falsa 123, Resistencia, Chaco, Argentina"
             calle = direccion_envio
             ciudad = "Ciudad por defecto"
             cp = "0000"
+            provincia = ""
+            telefono = ""
+            info_adicional = ""
             nombre_receptor = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
         else:
-            # Formato estructurado (dict)
             calle = direccion_envio.get("calle", "")
             ciudad = direccion_envio.get("ciudad", "")
             cp = direccion_envio.get("codigo_postal", "")
+            provincia = direccion_envio.get("provincia", "")
+            telefono = direccion_envio.get("telefono", "")
+            info_adicional = direccion_envio.get("informacion_adicional", direccion_envio.get("departamento", ""))
             nombre_receptor = direccion_envio.get("nombre_receptor") or f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
 
-        # Crear dirección de envío
+        if not calle or not ciudad or not cp:
+            return Response(
+                {"error": "Datos de direccion incompletos", "code": "INVALID_ADDRESS"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         with transaction.atomic():
             direccion = DireccionEnvio.objects.create(
                 calle=calle,
                 ciudad=ciudad,
                 codigo_postal=cp,
                 nombre_receptor=nombre_receptor,
-                provincia=direccion_envio.get("provincia", "") if isinstance(direccion_envio, dict) else "",
-                telefono=direccion_envio.get("telefono", "") if isinstance(direccion_envio, dict) else "",
+                provincia=provincia,
+                telefono=telefono,
                 pais="Argentina",
+                informacion_adicional=info_adicional,
+                usuario=request.user,
             )
 
-            # Crear pedido
             pedido = Pedido.objects.create(
                 usuario=request.user,
                 direccion_envio=direccion,
                 estado=Pedido.Estado.PENDIENTE,
-                tipo_transporte=request.data.get("tipo_transporte", "domicilio"),
-                total=Decimal("0.00")
+                tipo_transporte=tipo_transporte,
+                total=Decimal("0.00"),
             )
 
-            # Obtener precios de productos desde la API de Stock (si USE_MOCK_APIS=False)
-            # o usar precios por defecto (si USE_MOCK_APIS=True)
             use_external_apis = not getattr(settings, 'USE_MOCK_APIS', True)
             total = Decimal("0.00")
-            
+            productos_para_reserva = []
+
             if use_external_apis:
-                # Modo PRODUCCIÓN: Obtener precios reales de Stock API
                 stock_client = obtener_cliente_stock()
-                
                 for item in items_carrito:
+                    pid = int(item.producto_id)
+                    qty = int(item.cantidad or 1)
                     try:
-                        producto = stock_client.obtener_producto(item.producto_id)
-                        precio_unitario = Decimal(str(producto.get("precio", 0)))
-                        nombre_producto = producto.get("name", f"Producto {item.producto_id}")
+                        producto = stock_client.obtener_producto(pid)
+                        precio_unitario = Decimal(str(producto.get("price", 0)))
+                        nombre_producto = producto.get("name", f"Producto {pid}")
                     except Exception:
-                        # Si falla la API, usar valores por defecto
                         precio_unitario = Decimal("0.00")
-                        nombre_producto = f"Producto {item.producto_id}"
-                    
-                    subtotal = precio_unitario * item.cantidad
+                        nombre_producto = f"Producto {pid}"
+
+                    subtotal = precio_unitario * qty
                     total += subtotal
+                    productos_para_reserva.append({"productId": pid, "quantity": qty})
 
                     DetallePedido.objects.create(
                         pedido=pedido,
-                        producto_id=item.producto_id,
+                        producto_id=pid,
                         nombre_producto=nombre_producto,
-                        cantidad=item.cantidad,
+                        cantidad=qty,
                         precio_unitario=precio_unitario,
                     )
             else:
-                # Modo DESARROLLO/MOCK: Usar precios ficticios
                 precios_mock = {
                     1: Decimal("1299.99"),
                     2: Decimal("999.00"),
@@ -367,35 +468,58 @@ class PedidoViewSet(viewsets.ModelViewSet):
                     4: Decimal("249.00"),
                     5: Decimal("89.99"),
                 }
-                
+
                 for item in items_carrito:
-                    precio_unitario = precios_mock.get(item.producto_id, Decimal("99.99"))
-                    subtotal = precio_unitario * item.cantidad
+                    pid = int(item.producto_id)
+                    qty = int(item.cantidad or 1)
+                    precio_unitario = precios_mock.get(pid, Decimal("99.99"))
+                    subtotal = precio_unitario * qty
                     total += subtotal
+                    productos_para_reserva.append({"productId": pid, "quantity": qty})
 
                     DetallePedido.objects.create(
                         pedido=pedido,
-                        producto_id=item.producto_id,
-                        nombre_producto=f"Producto {item.producto_id}",
-                        cantidad=item.cantidad,
+                        producto_id=pid,
+                        nombre_producto=f"Producto {pid}",
+                        cantidad=qty,
                         precio_unitario=precio_unitario,
                     )
 
-            # Actualizar total del pedido
             pedido.total = total
             pedido.save(update_fields=["total"])
-            
-            # Vaciar el carrito después de crear el pedido
-            items_carrito.delete()
+            logger.info(
+                "Checkout: pedido=%s total=%s items_para_reserva=%s",
+                pedido.id,
+                pedido.total,
+                productos_para_reserva,
+            )
 
-            serializer = self.get_serializer(pedido)
-            return Response({
-                "message": "Pedido creado exitosamente",
+        resultado, error_response = self._confirmar_con_servicios_externos(
+            pedido=pedido,
+            request=request,
+            tipo_transporte=pedido.tipo_transporte,
+        )
+        if error_response:
+            return error_response
+
+        if items_carrito:
+            for it in items_carrito:
+                it.delete()
+
+        serializer = self.get_serializer(pedido)
+        return Response(
+            {
+                "message": "Pedido creado y confirmado exitosamente",
                 "pedido_id": pedido.id,
-                "pedido": serializer.data
-            }, status=status.HTTP_201_CREATED)
+                "pedido": serializer.data,
+                "reserva": resultado.get("reserva") if resultado else None,
+                "envio": resultado.get("envio") if resultado else None,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
     # --------------------------------------------------------------
+# --------------------------------------------------------------
     # Tracking de envíos (integración Compras ↔ Logística)
     # --------------------------------------------------------------
     @action(detail=True, methods=["post"], url_path="tracking")

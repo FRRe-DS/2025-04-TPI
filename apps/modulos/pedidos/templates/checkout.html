@@ -60,36 +60,11 @@
             <div class="checkout-grid">
                 <div class="summary-col">
                     <h2>Resumen del Pedido</h2>
-                    <div class="summary-items">
-                        <div class="summary-item">
-                            <img src="https://via.placeholder.com/120x120/f1f1f1/cccccc?text=Producto1" alt="Producto 1" class="item-image">
-                            <div class="item-details">
-                                <p>Zapatilla Urbana Blanca</p>
-                                <span>Talle: 41 AR</span>
-                            </div>
-                            <span class="item-price">$ 85.000</span>
-                        </div>
-                        <div class="summary-item">
-                            <img src="https://via.placeholder.com/120x120/f1f1f1/cccccc?text=Producto2" alt="Producto 2" class="item-image">
-                            <div class="item-details">
-                                <p>Botines de Fútbol</p>
-                                <span>Talle: 43 AR</span>
-                            </div>
-                            <span class="item-price">$ 110.500</span>
-                        </div>
-                         <div class="summary-item">
-                            <img src="https://via.placeholder.com/120x120/f1f1f1/cccccc?text=Producto3" alt="Producto 3" class="item-image">
-                            <div class="item-details">
-                                <p>Ojotas de Verano</p>
-                                <span>Talle: 42 AR</span>
-                            </div>
-                            <span class="item-price">$ 34.990</span>
-                        </div>
-                    </div>
+                    <div class="summary-items"></div>
                     <div class="totals-summary">
-                        <div class="total-row"><span>Subtotal</span><span>$ 230.490</span></div>
-                        <div class="total-row"><span>Envío</span><span>$ 3.500</span></div>
-                        <div class="total-row grand-total"><span>Total</span><span>$ 233.990</span></div>
+                        <div class="total-row"><span>Subtotal</span><span>$ 0</span></div>
+                        <div class="total-row"><span>Envío</span><span>-</span></div>
+                        <div class="total-row grand-total"><span>Total</span><span>$ 0</span></div>
                     </div>
                 </div>
 
@@ -104,7 +79,7 @@
                                 <div class="shipping-option">
                                     <div class="shipping-option__info">
                                         <div class="shipping-option__title">
-                                            <span>{% if tipo.icono %}{{ tipo.icono }} {% endif %}{{ tipo.nombre }}</span>
+                                            <span>{{ tipo.nombre }}</span>
                                             <span>{{ tipo.costo }}</span>
                                         </div>
                                         <p class="shipping-option__description">{{ tipo.descripcion }}</p>
@@ -137,7 +112,11 @@
                                 </div>
                                 <div class="form-grid two-columns">
                                     <div class="form-group"><label for="ciudad">Ciudad</label><input type="text" id="ciudad" name="ciudad" required></div>
-                                    <div class="form-group"><label for="codigo_postal">Código postal</label><input type="text" id="codigo_postal" name="codigo_postal" required></div>
+                                    <div class="form-group"><label for="provincia">Provincia / Estado</label><input type="text" id="provincia" name="provincia" required placeholder="Ej: Buenos Aires"></div>
+                                </div>
+                                <div class="form-grid two-columns">
+                                    <div class="form-group"><label for="codigo_postal">Código postal</label><input type="text" id="codigo_postal" name="codigo_postal" required placeholder="Formato A1234ABC"></div>
+                                    <div class="form-group"><label for="informacion_adicional">Referencias (opcional)</label><input type="text" id="informacion_adicional" name="informacion_adicional" placeholder="Entre calles, timbre, etc."></div>
                                 </div>
                             </div>
                         </div>
@@ -219,6 +198,14 @@
         </form>
     </div>
 
-    <script src="{% static 'js/apps/modulos/pedidos/checkout.js' %}"></script>
+        <script>
+        window.checkoutConfig = {
+            apiBase: "{{ api_base|default:'' }}",
+            checkoutUrl: "{{ checkout_endpoint|default:'/api/shopcart/checkout' }}",
+            successUrl: "{{ success_url|default:'' }}",
+            failureUrl: "{{ failure_url|default:'' }}",
+        };
+    </script>
+<script src="{% static 'js/apps/modulos/pedidos/checkout.js' %}"></script>
 </body>
 </html>
