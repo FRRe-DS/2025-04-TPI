@@ -17,3 +17,4 @@ ENV/
 logs/*.log
 logs/*.log.*
 logs/*.gz
+notas.txt
