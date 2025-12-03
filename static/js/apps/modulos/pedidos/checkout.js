@@ -94,8 +94,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const shippingRadio = document.querySelector('input[name="tipo_envio"]:checked');
         const shippingSection = document.getElementById('summary-shipping-section');
 
-        document.getElementById('summary-nombre')?.textContent = nombre || 'No especificado';
-        document.getElementById('summary-telefono')?.textContent = telefono || 'No especificado';
+        const summaryNombre = document.getElementById('summary-nombre');
+        const summaryTelefono = document.getElementById('summary-telefono');
+        if (summaryNombre) summaryNombre.textContent = nombre || 'No especificado';
+        if (summaryTelefono) summaryTelefono.textContent = telefono || 'No especificado';
 
         if (shippingRadio) {
             if (shippingRadio.value === 'domicilio') {
