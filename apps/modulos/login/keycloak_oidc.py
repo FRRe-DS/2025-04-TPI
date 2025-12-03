@@ -23,6 +23,10 @@ class KeycloakOpenIDConnectAdapter(OpenIDConnectOAuth2Adapter):
         "introspection_endpoint",
         "revocation_endpoint",
     )
+    _PUBLIC_ENDPOINT_KEYS = (
+        "authorization_endpoint",
+        "end_session_endpoint",
+    )
 
     def _should_rewrite(self) -> bool:
         internal = getattr(settings, "KEYCLOAK_BASE_URL", "").strip()
@@ -40,6 +44,20 @@ class KeycloakOpenIDConnectAdapter(OpenIDConnectOAuth2Adapter):
         rebased = parsed._replace(
             scheme=parsed_internal.scheme,
             netloc=parsed_internal.netloc,
+        )
+        return urlunparse(rebased)
+
+    def _rebase_to_public(self, url: str | None) -> str | None:
+        if not url or not self._should_rewrite():
+            return url
+        public_base = getattr(settings, "KEYCLOAK_PUBLIC_BASE_URL", "").strip().rstrip("/")
+        parsed_public = urlparse(public_base)
+        if not parsed_public.scheme or not parsed_public.netloc:
+            return url
+        parsed = urlparse(url)
+        rebased = parsed._replace(
+            scheme=parsed_public.scheme,
+            netloc=parsed_public.netloc,
         )
         return urlunparse(rebased)
 
@@ -61,6 +79,8 @@ class KeycloakOpenIDConnectAdapter(OpenIDConnectOAuth2Adapter):
             patched = deepcopy(config)
             for key in self._INTERNAL_ENDPOINT_KEYS:
                 patched[key] = self._rebase_url(patched.get(key))
+            for key in self._PUBLIC_ENDPOINT_KEYS:
+                patched[key] = self._rebase_to_public(patched.get(key))
             self._patched_openid_config = patched
         else:
             self._patched_openid_config = config
