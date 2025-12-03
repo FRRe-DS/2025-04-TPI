@@ -35,12 +35,42 @@ def _dashboard_context():
 def administracion_view(request):
     """
     Vista principal del panel de administración.
+    Muestra el menú para seleccionar entre Stock, Logística o Compras.
     """
     # Si querés exigir login, descomentá esto:
     # if not request.user.is_authenticated:
     #     return redirect('login')
 
+    return render(request, 'admin_menu_principal.html')
+
+
+def admin_stock_view(request):
+    """
+    Vista del panel de administración de Stock.
+    """
     ctx = _dashboard_context()
+    ctx['titulo'] = 'Administración de Stock'
+    ctx['modulo'] = 'stock'
+    return render(request, 'inicio_admin.html', ctx)
+
+
+def admin_logistica_view(request):
+    """
+    Vista del panel de administración de Logística.
+    """
+    ctx = _dashboard_context()
+    ctx['titulo'] = 'Administración de Logística'
+    ctx['modulo'] = 'logistica'
+    return render(request, 'inicio_admin.html', ctx)
+
+
+def admin_compras_view(request):
+    """
+    Vista del panel de administración de Compras.
+    """
+    ctx = _dashboard_context()
+    ctx['titulo'] = 'Administración de Compras'
+    ctx['modulo'] = 'compras'
     return render(request, 'inicio_admin.html', ctx)
 
 
