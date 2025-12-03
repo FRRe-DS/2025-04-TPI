@@ -54,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Carrito: actualizar', { productId, cantidad });
         try {
             if (cantidad <= 0) {
+                // Eliminar producto del carrito
                 const resp = await fetch(`${apiBase}/shopcart/${productId}/`, {
                     method: 'DELETE',
                     credentials: 'include',
@@ -66,19 +67,42 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (resp.status !== 404) throw new Error(msg);
                 }
             } else {
-                const resp = await fetch(`${apiBase}/shopcart/`, {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrf,
-                    },
-                    body: JSON.stringify({ productId, quantity: cantidad }),
-                });
-                if (!resp.ok) {
-                    const msg = await resp.text();
-                    console.error('Carrito POST fallo', resp.status, msg);
-                    throw new Error(msg);
+                // Verificar si el producto ya existe en el carrito
+                const carritoActual = await fetchCarrito();
+                const existeEnCarrito = carritoActual.some(item => item.id === String(productId));
+                
+                if (existeEnCarrito) {
+                    // Actualizar cantidad existente usando PUT
+                    const resp = await fetch(`${apiBase}/shopcart/${productId}/`, {
+                        method: 'PUT',
+                        credentials: 'include',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrf,
+                        },
+                        body: JSON.stringify({ quantity: cantidad }),
+                    });
+                    if (!resp.ok) {
+                        const msg = await resp.text();
+                        console.error('Carrito PUT fallo', resp.status, msg);
+                        throw new Error(msg);
+                    }
+                } else {
+                    // Agregar nuevo producto usando POST
+                    const resp = await fetch(`${apiBase}/shopcart/`, {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrf,
+                        },
+                        body: JSON.stringify({ productId, quantity: cantidad }),
+                    });
+                    if (!resp.ok) {
+                        const msg = await resp.text();
+                        console.error('Carrito POST fallo', resp.status, msg);
+                        throw new Error(msg);
+                    }
                 }
             }
         } catch (err) {
@@ -89,7 +113,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function syncCarritoYDisparar() {
         const carritoActual = await fetchCarrito();
+        
+        // Sincronizar con sessionStorage para el badge del navbar
+        const carritoMock = carritoActual.map(item => ({
+            id: item.id,
+            cantidad: item.cantidad,
+            nombre: item.product?.nombre || `Producto ${item.id}`,
+            precio: item.product?.precio || 0,
+            imagen: item.product?.imagen || 'https://via.placeholder.com/120x120'
+        }));
+        sessionStorage.setItem('carrito_demo', JSON.stringify(carritoMock));
+        
+        // Disparar evento para actualizar vistas
         document.dispatchEvent(new CustomEvent('cartUpdated', { detail: { carrito: carritoActual } }));
+        
+        // Actualizar manualmente el badge del carrito
+        if (window.actualizarVistaCarrito) {
+            window.actualizarVistaCarrito();
+        }
     }
 
     function confirmarProductoActivo() {
@@ -222,9 +263,25 @@ document.addEventListener('DOMContentLoaded', () => {
     // Cargar carrito real y pintar vistas
     (async () => {
         const carrito = await fetchCarrito();
+        
+        // Sincronizar con sessionStorage para el badge del navbar
+        const carritoMock = carrito.map(item => ({
+            id: item.id,
+            cantidad: item.cantidad,
+            nombre: item.product?.nombre || `Producto ${item.id}`,
+            precio: item.product?.precio || 0,
+            imagen: item.product?.imagen || 'https://via.placeholder.com/120x120'
+        }));
+        sessionStorage.setItem('carrito_demo', JSON.stringify(carritoMock));
+        
         productCards.forEach(card => {
             actualizarVistaTarjeta(card, carrito);
         });
         document.dispatchEvent(new CustomEvent('cartUpdated', { detail: { carrito } }));
+        
+        // Actualizar el badge del carrito
+        if (window.actualizarVistaCarrito) {
+            window.actualizarVistaCarrito();
+        }
     })();
 });
