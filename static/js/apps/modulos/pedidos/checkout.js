@@ -186,14 +186,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 credentials: 'include',
             });
             if (resp.status === 401) {
-                summaryItemsContainer.innerHTML = '<p class="cart-empty-summary">Inicia sesion para ver tu carrito.</p>';
+                console.warn('Checkout loadCart 401 - sesion requerida');
+                if (summaryItemsContainer) {
+                    summaryItemsContainer.innerHTML = '<p class="cart-empty-summary">Inicia sesion para ver tu carrito.</p>';
+                }
                 return;
             }
             if (!resp.ok) {
+                console.error('Checkout loadCart fallo', resp.status);
                 throw new Error(await resp.text());
             }
             const data = await resp.json();
             carritoItems = data.items || [];
+            console.log('Checkout loadCart items', carritoItems);
             renderSummaryItems();
         } catch (err) {
             console.error('Error al obtener el carrito', err);
@@ -278,6 +283,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const tipo_transporte = tipo_envio_el?.value || 'domicilio';
         const metodo_pago = document.getElementById('payment_method')?.value || 'tarjeta';
 
+        const items_payload = carritoItems
+            .map((it) => {
+                const pid = it.productId || it.producto_id || it.id;
+                const qty = it.quantity || it.cantidad || 1;
+                return pid ? { productId: Number(pid), quantity: Number(qty) } : null;
+            })
+            .filter(Boolean);
+
+        console.log('Checkout enviar payload items', items_payload);
+
+        if (!items_payload.length) {
+            alert('El carrito esta vacio.');
+            if (btn) btn.disabled = false;
+            return;
+        }
+
         if (!nombre || !telefono) {
             alert('Por favor completa nombre y telefono.');
             if (btn) btn.disabled = false;
@@ -305,6 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             tipo_transporte: tipo_transporte,
             metodo_pago: metodo_pago,
+            items: items_payload,
         };
 
         try {

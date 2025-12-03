@@ -322,14 +322,22 @@ class PedidoViewSet(viewsets.ModelViewSet):
 
         try:
             carrito = Carrito.objects.get(usuario=request.user)
+            items_carrito = list(carrito.items.all())
+            logger.info(
+                "Checkout: carrito obtenido para user=%s con %s items (ids=%s)",
+                request.user.id,
+                len(items_carrito),
+                [i.producto_id for i in items_carrito],
+            )
         except Carrito.DoesNotExist:
+            logger.warning("Checkout: carrito no encontrado para user=%s", request.user.id)
             return Response(
                 {"error": "No tienes un carrito activo", "code": "CART_NOT_FOUND"},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        items_carrito = carrito.items.all()
-        if not items_carrito.exists():
+        if not items_carrito:
+            logger.warning("Checkout: carrito vacio para user=%s", request.user.id)
             return Response(
                 {"error": "El carrito esta vacio", "code": "EMPTY_CART"},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -338,6 +346,13 @@ class PedidoViewSet(viewsets.ModelViewSet):
         direccion_envio = request.data.get("direccion_envio")
         metodo_pago = request.data.get("metodo_pago", "tarjeta")
         tipo_transporte = request.data.get("tipo_transporte", "domicilio")
+        logger.info(
+            "Checkout payload user=%s metodo_pago=%s tipo_transporte=%s direccion_envio_keys=%s",
+            request.user.id,
+            metodo_pago,
+            tipo_transporte,
+            list(direccion_envio.keys()) if isinstance(direccion_envio, dict) else type(direccion_envio),
+        )
 
         if not direccion_envio:
             return Response(
@@ -391,26 +406,30 @@ class PedidoViewSet(viewsets.ModelViewSet):
 
             use_external_apis = not getattr(settings, 'USE_MOCK_APIS', True)
             total = Decimal("0.00")
+            productos_para_reserva = []
 
             if use_external_apis:
                 stock_client = obtener_cliente_stock()
                 for item in items_carrito:
+                    pid = int(item.producto_id)
+                    qty = int(item.cantidad or 1)
                     try:
-                        producto = stock_client.obtener_producto(item.producto_id)
+                        producto = stock_client.obtener_producto(pid)
                         precio_unitario = Decimal(str(producto.get("price", 0)))
-                        nombre_producto = producto.get("name", f"Producto {item.producto_id}")
+                        nombre_producto = producto.get("name", f"Producto {pid}")
                     except Exception:
                         precio_unitario = Decimal("0.00")
-                        nombre_producto = f"Producto {item.producto_id}"
+                        nombre_producto = f"Producto {pid}"
 
-                    subtotal = precio_unitario * item.cantidad
+                    subtotal = precio_unitario * qty
                     total += subtotal
+                    productos_para_reserva.append({"productId": pid, "quantity": qty})
 
                     DetallePedido.objects.create(
                         pedido=pedido,
-                        producto_id=item.producto_id,
+                        producto_id=pid,
                         nombre_producto=nombre_producto,
-                        cantidad=item.cantidad,
+                        cantidad=qty,
                         precio_unitario=precio_unitario,
                     )
             else:
@@ -423,20 +442,29 @@ class PedidoViewSet(viewsets.ModelViewSet):
                 }
 
                 for item in items_carrito:
-                    precio_unitario = precios_mock.get(item.producto_id, Decimal("99.99"))
-                    subtotal = precio_unitario * item.cantidad
+                    pid = int(item.producto_id)
+                    qty = int(item.cantidad or 1)
+                    precio_unitario = precios_mock.get(pid, Decimal("99.99"))
+                    subtotal = precio_unitario * qty
                     total += subtotal
+                    productos_para_reserva.append({"productId": pid, "quantity": qty})
 
                     DetallePedido.objects.create(
                         pedido=pedido,
-                        producto_id=item.producto_id,
-                        nombre_producto=f"Producto {item.producto_id}",
-                        cantidad=item.cantidad,
+                        producto_id=pid,
+                        nombre_producto=f"Producto {pid}",
+                        cantidad=qty,
                         precio_unitario=precio_unitario,
                     )
 
             pedido.total = total
             pedido.save(update_fields=["total"])
+            logger.info(
+                "Checkout: pedido=%s total=%s items_para_reserva=%s",
+                pedido.id,
+                pedido.total,
+                productos_para_reserva,
+            )
 
         resultado, error_response = self._confirmar_con_servicios_externos(
             pedido=pedido,
@@ -446,7 +474,9 @@ class PedidoViewSet(viewsets.ModelViewSet):
         if error_response:
             return error_response
 
-        items_carrito.delete()
+        if items_carrito:
+            for it in items_carrito:
+                it.delete()
 
         serializer = self.get_serializer(pedido)
         return Response(
@@ -461,6 +491,7 @@ class PedidoViewSet(viewsets.ModelViewSet):
         )
 
     # --------------------------------------------------------------
+# --------------------------------------------------------------
     # Tracking de envíos (integración Compras ↔ Logística)
     # --------------------------------------------------------------
     @action(detail=True, methods=["post"], url_path="tracking")

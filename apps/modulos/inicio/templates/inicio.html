@@ -111,15 +111,16 @@
                         <span class="brand">{{ producto.marca }}</span>
                         <h3 class="product-name">{{ producto.nombre }}</h3>
                         <p class="price">$ {{ producto.precio|floatformat:2 }}</p>
-                        <div class="card-actions">
-                            <button class="add-to-cart-btn">Agregar al Carrito</button>
-                            <div class="quantity-selector hidden">
-                                <button class="quantity-btn minus-btn">-</button>
-                                <input type="number" class="quantity-input" value="1" min="1">
-                                <button class="quantity-btn plus-btn">+</button>
+                            <div class="card-actions">
+                                <button class="add-to-cart-btn">Agregar al Carrito</button>
+                                <div class="quantity-selector hidden">
+                                    <button class="quantity-btn minus-btn">-</button>
+                                    <input type="number" class="quantity-input" value="1" min="1">
+                                    <button class="quantity-btn plus-btn">+</button>
+                                </div>
+                                <button class="btn confirm-btn hidden">Confirmar</button>
+                                <button type="button" class="btn remove-btn hidden" aria-label="Eliminar del carrito">X</button>
                             </div>
-                            <button class="btn confirm-btn hidden">Confirmar</button>
-                        </div>
                     </div>
                 </div>
                 {% endfor %}

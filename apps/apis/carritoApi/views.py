@@ -5,8 +5,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from django.conf import settings
 from .models import Carrito, ItemCarrito
+import logging
+logger = logging.getLogger(__name__)
 from .serializer import CartSerializer
-from .client import obtener_cliente_stock
+from .client import obtener_cliente_stock_externo
+from utils.apiCliente import APIError
 
 
 class CartViewSet(viewsets.ViewSet):
@@ -15,6 +18,7 @@ class CartViewSet(viewsets.ViewSet):
     def list(self, request):
         """GET /api/shopcart/ - Ver carrito"""
         carrito, _ = Carrito.objects.get_or_create(usuario=request.user)
+        logger.info("Carrito:list user=%s items=%s", request.user.id, carrito.items.count())
         
         # Verificar si usamos APIs externas o modo mock/desarrollo
         use_external_apis = not getattr(settings, 'USE_MOCK_APIS', True)
@@ -25,14 +29,21 @@ class CartViewSet(viewsets.ViewSet):
             # Modo PRODUCCIÓN: Obtener datos reales de la API de Stock
             items = carrito.items.all()
             product_ids = [item.producto_id for item in items]
-            stock_client = obtener_cliente_stock()
+            stock_client = obtener_cliente_stock_externo()
             
-            for id in product_ids:            
-                producto = stock_client.obtener_producto(id)
+            for id in product_ids:
+                try:
+                    producto = stock_client.obtener_producto(id)
+                except APIError as exc:
+                    logger.error("Carrito:list fallo stock id=%s error=%s", id, exc)
+                    return Response(
+                        {"error": "Error al obtener productos del carrito", "code": "PRODUCT_FETCH_ERROR"},
+                        status=status.HTTP_502_BAD_GATEWAY,
+                    )
                 if not producto:
                     return Response(
-                        {"error": "Error al obtener productos del carrito", "code": "PRODUCT_FETCH_ERROR"}, 
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                        {"error": "Producto no encontrado en stock", "code": "PRODUCT_NOT_FOUND"},
+                        status=status.HTTP_404_NOT_FOUND,
                     )
                 productos.append(producto)
         
@@ -54,8 +65,15 @@ class CartViewSet(viewsets.ViewSet):
         
         if use_external_apis:
             # Modo PRODUCCIÓN: Verificar con la API de Stock real
-            stock_client = obtener_cliente_stock()
-            producto = stock_client.obtener_producto(product_id)
+            stock_client = obtener_cliente_stock_externo()
+            try:
+                producto = stock_client.obtener_producto(product_id)
+            except APIError as exc:
+                logger.error("Carrito:create fallo stock product=%s error=%s", product_id, exc)
+                return Response(
+                    {"error": "Error consultando stock", "code": "PRODUCT_FETCH_ERROR"},
+                    status=status.HTTP_502_BAD_GATEWAY,
+                )
             if not producto:
                 return Response(
                     {"error": "Producto no encontrado", "code": "PRODUCT_NOT_FOUND"}, 
@@ -72,6 +90,7 @@ class CartViewSet(viewsets.ViewSet):
         else:
             item.cantidad = int(quantity)
         item.save()
+        logger.info("Carrito:create user=%s product=%s qty=%s created=%s", request.user.id, product_id, quantity, created)
         return Response({"message": "Producto agregado al carrito"}, status=status.HTTP_201_CREATED)
 
     def update(self, request, pk=None):
@@ -84,6 +103,7 @@ class CartViewSet(viewsets.ViewSet):
             item = ItemCarrito.objects.get(carrito=carrito, producto_id=pk)
             item.cantidad = int(quantity)
             item.save()
+            logger.info("Carrito:update user=%s product=%s qty=%s", request.user.id, pk, quantity)
             return Response({"message": "Carrito actualizado"}, status=status.HTTP_200_OK)
         except ItemCarrito.DoesNotExist:
             return Response({"error": "Producto no encontrado en el carrito", "code": "CART_ITEM_NOT_FOUND"}, status=status.HTTP_404_NOT_FOUND)
@@ -95,6 +115,7 @@ class CartViewSet(viewsets.ViewSet):
             try:
                 item = ItemCarrito.objects.get(carrito=carrito, producto_id=pk)
                 item.delete()
+                logger.info("Carrito:delete item user=%s product=%s", request.user.id, pk)
                 return Response({"message": "Producto removido del carrito"}, status=status.HTTP_200_OK)
             except ItemCarrito.DoesNotExist:
                 return Response({"error": "Producto no encontrado en el carrito", "code": "CART_ITEM_NOT_FOUND"}, status=status.HTTP_404_NOT_FOUND)
@@ -106,6 +127,7 @@ class CartViewSet(viewsets.ViewSet):
         """DELETE /api/shopcart/clear/ - Vaciar todo el carrito"""
         carrito, _ = Carrito.objects.get_or_create(usuario=request.user)
         carrito.items.all().delete()
+        logger.info("Carrito:clear user=%s", request.user.id)
         return Response({"message": "Carrito vaciado"}, status=status.HTTP_200_OK)
         
         
