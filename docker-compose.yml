@@ -52,9 +52,9 @@ services:
       KEYCLOAK_EXPECTED_AUDIENCE: account,grupo-04
       KEYCLOAK_SERVICE_CLIENT_ID: grupo-04
       KEYCLOAK_SERVICE_CLIENT_SECRET: 6be1bec1-9472-499f-ab37-883d78f57829
-      KEYCLOAK_SERVICE_SCOPE: productos:read
+      KEYCLOAK_SERVICE_SCOPE: ""
       STOCK_API_BASE_URL: http://nginx/stock/
-      LOGISTICA_API_BASE_URL: http://nginx/logistica/
+      LOGISTICA_API_BASE_URL: http://shipping-back:3010
     command: >
       /bin/sh -c "
       echo '🔄 Esperando a PostgreSQL...' &&

@@ -72,6 +72,14 @@ class PedidoViewSet(viewsets.ModelViewSet):
             pedido.recalcular_total(guardar=True)
 
         try:
+            logger.info(
+                "Checkout -> logistics payload order=%s user=%s transport=%s addr=%s products=%s",
+                pedido.id,
+                pedido.usuario_id or (request.user.id if request.user.is_authenticated else 0),
+                tipo_transporte,
+                pedido.direccion_envio.generar_datos_logistica(),
+                productos_logistica,
+            )
             respuesta_envio = cliente_logistica.create_shipment(
                 order_id=pedido.id,
                 user_id=pedido.usuario_id or (request.user.id if request.user.is_authenticated else 0),
@@ -79,7 +87,14 @@ class PedidoViewSet(viewsets.ModelViewSet):
                 transport_type=tipo_transporte,
                 products=productos_logistica,
             )
+            logger.info("Checkout -> logistics response: %s", respuesta_envio)
         except APIError as exc:
+            logger.error(
+                "Checkout -> logistics error status=%s url=%s payload=%s",
+                getattr(exc, "status", None),
+                getattr(exc, "url", None),
+                getattr(exc, "payload", None),
+            )
             return (
                 None,
                 Response(
@@ -106,19 +121,32 @@ class PedidoViewSet(viewsets.ModelViewSet):
                 ),
             )
 
+        logger.info(
+            "Checkout -> stock payload order=%s user=%s productos=%s",
+            pedido.id,
+            pedido.usuario_id or (request.user.id if request.user.is_authenticated else 0),
+            productos_stock,
+        )
         try:
             respuesta_stock = cliente_stock.reservar_stock(
                 idCompra=str(pedido.id),
                 usuarioId=pedido.usuario_id or (request.user.id if request.user.is_authenticated else 0),
                 productos=productos_stock,
             )
+            logger.info("Checkout -> stock response: %s", respuesta_stock)
         except APIError as exc:
-            # Intentar cancelar el envÇðo creado para no dejar residuos
+            # Intentar cancelar el envio creado para no dejar residuos
             try:
                 cliente_logistica.cancel_shipment(int(referencia_envio))
             except Exception:
-                logger.exception("No se pudo cancelar el envÇðo %s tras fallo de stock", referencia_envio)
+                logger.exception("No se pudo cancelar el envio %s tras fallo de stock", referencia_envio)
 
+            logger.error(
+                "Checkout -> stock error status=%s url=%s payload=%s",
+                getattr(exc, "status", None),
+                getattr(exc, "url", None),
+                getattr(exc, "payload", None),
+            )
             return (
                 None,
                 Response(

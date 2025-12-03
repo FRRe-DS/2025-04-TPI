@@ -37,20 +37,16 @@ class DireccionEnvio(models.Model):
 
     def generar_datos_logistica(self) -> dict[str, str]:
         """Devuelve el payload esperado por el servicio de logística."""
-        datos = {
-            "recipient_name": self.nombre_receptor,
+        state = (self.provincia or self.ciudad or "").strip()
+        cp = (self.codigo_postal or "").strip()
+        payload = {
             "street": self.calle,
             "city": self.ciudad,
-            "postal_code": self.codigo_postal,
+            "state": state,
+            "postal_code": cp,
             "country": self.pais,
         }
-        if self.provincia:
-            datos["state"] = self.provincia
-        if self.informacion_adicional:
-            datos["additional_info"] = self.informacion_adicional
-        if self.telefono:
-            datos["phone"] = self.telefono
-        return datos
+        return payload
 
 
 class Pedido(models.Model):

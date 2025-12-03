@@ -59,6 +59,56 @@
           }
         }
       ]
+    },
+    {
+      "name": "envios:read",
+      "description": "Scope que permite acceso de lectura a envios/logistica",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "true"
+      },
+      "protocolMappers": [
+        {
+          "name": "realm roles mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "envios:write",
+      "description": "Scope que permite acceso de escritura a envios/logistica",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "true"
+      },
+      "protocolMappers": [
+        {
+          "name": "realm roles mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true"
+          }
+        }
+      ]
     }
   ],
 
@@ -122,7 +172,8 @@
       },
       "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": true,
-      "protocol": "openid-connect"
+      "protocol": "openid-connect",
+      "defaultClientScopes": ["productos:read", "envios:read", "envios:write"]
     },
     {
       "clientId": "grupo-05",
@@ -248,7 +299,7 @@
       "username": "service-account-grupo-04",
       "enabled": true,
       "serviceAccountClientId": "grupo-04",
-      "realmRoles": ["compras-be"]
+      "realmRoles": ["compras-be", "logistica-be", "stock-be"]
     },
     {
       "username": "service-account-grupo-05",

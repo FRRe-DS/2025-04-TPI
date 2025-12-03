@@ -22,7 +22,7 @@ class LogisticsClient(BaseAPIClient):
             "transport_type": transport_type,
             "products": products
         }
-        return self.post("/shipping", json=body, expected_status=201)
+        return self.post("/shipping", json=body, expected_status=(200, 201))
     """
     Cliente para el servicio de Transporte / Logística.
 
@@ -103,7 +103,7 @@ class LogisticsClient(BaseAPIClient):
             "products": products,
         }
         # Ruta según OpenAPI de logística expuesta a compras
-        return self.post("/logistics/tracking", json=payload, expected_status=201)
+        return self.post("/logistics/tracking", json=payload, expected_status=(200, 201))
 
     def get_tracking(self, tracking_id: int) -> Dict[str, Any]:
         """Obtiene el estado de un tracking (GET /logistics/tracking/{id})."""

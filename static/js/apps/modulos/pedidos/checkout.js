@@ -89,6 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const calle = document.getElementById('calle')?.value || '';
         const depto = document.getElementById('departamento')?.value || '';
         const ciudad = document.getElementById('ciudad')?.value || '';
+        const provincia = document.getElementById('provincia')?.value || '';
         const cp = document.getElementById('codigo_postal')?.value || '';
 
         const shippingRadio = document.querySelector('input[name="tipo_envio"]:checked');
@@ -109,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const line1 = document.getElementById('summary-address-line1');
                 const line2 = document.getElementById('summary-address-line2');
                 if (line1) line1.textContent = addressLine1;
-                if (line2) line2.textContent = `${ciudad}, ${cp}`;
+                if (line2) line2.textContent = `${ciudad}${provincia ? ', ' + provincia : ''}${cp ? ' (' + cp + ')' : ''}`;
 
                 const shippingMethod = document.getElementById('summary-shipping-method');
                 if (shippingMethod) shippingMethod.textContent = 'Envio a domicilio';
@@ -306,8 +307,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (tipo_transporte !== 'retiro_sucursal' && tipo_transporte !== 'demo_tracking') {
-            if (!calle || !ciudad || !codigo_postal) {
-                alert('Por favor completa todos los campos de direccion.');
+            const postalRegex = /^[A-Za-z]\d{4}[A-Za-z]{3}$/;
+            if (!calle || !ciudad || !codigo_postal || !provincia) {
+                alert('Por favor completa calle, ciudad, provincia y codigo postal.');
+                if (btn) btn.disabled = false;
+                return;
+            }
+            if (!postalRegex.test(codigo_postal.trim())) {
+                alert('El codigo postal debe tener formato A1234ABC (una letra, 4 numeros y 3 letras).');
                 if (btn) btn.disabled = false;
                 return;
             }
@@ -329,6 +336,13 @@ document.addEventListener('DOMContentLoaded', () => {
             items: items_payload,
         };
 
+        console.group('Checkout payload');
+        console.log('Endpoint', checkoutUrl);
+        console.log('Direccion envio', payload.direccion_envio);
+        console.log('Tipo transporte', payload.tipo_transporte);
+        console.log('Items', payload.items);
+        console.groupEnd();
+
         try {
             const resp = await fetch(checkoutUrl, {
                 method: 'POST',
@@ -341,6 +355,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             const data = await resp.json().catch(() => ({}));
+            console.log('Checkout response status', resp.status, 'body', data);
             if (!resp.ok) {
                 const msg = data?.error || data?.detail || 'Error al crear el pedido.';
                 mostrarResultado(data, resp.status);
