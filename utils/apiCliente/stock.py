@@ -1,4 +1,4 @@
-# utils/api_clients.py
+﻿# utils/api_clients.py
 from __future__ import annotations
 from typing import Any, Dict, Optional
 from .base import BaseAPIClient
@@ -6,7 +6,7 @@ from .base import BaseAPIClient
 
 class StockClient(BaseAPIClient):
     """
-    Cliente para consumir la API de Stock según el contrato OpenAPI.
+    Cliente para consumir la API de Stock segÃºn el contrato OpenAPI.
     """
 
     def listar_productos(self, page: int = 1, limit: int = 20, q: Optional[str] = None, categoriaId: Optional[int] = None):
@@ -21,8 +21,8 @@ class StockClient(BaseAPIClient):
 
     def reservar_stock(self, idCompra: str, usuarioId: int, productos: list):
         """
-        Reserva stock según el schema ReservaInput.
-        idCompra: identificador único de la compra (str)
+        Reserva stock segÃºn el schema ReservaInput.
+        idCompra: identificador Ãºnico de la compra (str)
         usuarioId: ID del usuario que realiza la reserva (int)
         productos: lista de dicts con idProducto y cantidad
         """
@@ -31,7 +31,7 @@ class StockClient(BaseAPIClient):
             "usuarioId": usuarioId,
             "productos": productos
         }
-        return self.post("/api/v1/reservas", json=reserva_data, expected_status=200)
+        return self.post("/api/v1/reservas", json=reserva_data, expected_status=(200, 201))
 
     def listar_reservas(self,  usuarioId: int, page: int = 1, limit: int = 20, estado: Optional[str] = None):
         params = {"usuarioId": usuarioId, "page": page, "limit": limit}

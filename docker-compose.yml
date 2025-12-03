@@ -50,9 +50,19 @@ services:
       KEYCLOAK_CLIENT_ID: grupo-04
       KEYCLOAK_CLIENT_SECRET: 6be1bec1-9472-499f-ab37-883d78f57829
       KEYCLOAK_EXPECTED_AUDIENCE: account,grupo-04
+<<<<<<< HEAD
       KEYCLOAK_SERVICE_CLIENT_ID: grupo-03
       KEYCLOAK_SERVICE_CLIENT_SECRET: 21cd6616-6571-4ee7-be29-0f781f77c74e
       KEYCLOAK_SERVICE_SCOPE: envios:write
+=======
+      KEYCLOAK_SERVICE_CLIENT_ID: grupo-04
+      KEYCLOAK_SERVICE_CLIENT_SECRET: 6be1bec1-9472-499f-ab37-883d78f57829
+      KEYCLOAK_SERVICE_SCOPE: "productos:read envios:read"
+      LOGISTICA_KEYCLOAK_CLIENT_ID: grupo-03
+      LOGISTICA_KEYCLOAK_CLIENT_SECRET: 21cd6616-6571-4ee7-be29-0f781f77c74e
+      LOGISTICA_KEYCLOAK_SCOPE: "envios:write envios:read productos:read"
+      KEYCLOAK_ISSUER_URL: http://keycloak:8080/realms/ds-2025-realm
+>>>>>>> back-max
       STOCK_API_BASE_URL: http://nginx/stock/
       LOGISTICA_API_BASE_URL: http://shipping-back:3010
     command: >
@@ -118,8 +128,13 @@ services:
       - keycloak/.env
     environment:
       KC_HOSTNAME: keycloak
+<<<<<<< HEAD
       KC_HOSTNAME_PORT: 8080
+=======
+      KC_HOSTNAME_STRICT: "false"
+>>>>>>> back-max
       KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_HOSTNAME_PORT: 8080
       KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
       KC_HTTP_ENABLED: "true"
       KC_HEALTH_ENABLED: "true"
@@ -195,6 +210,11 @@ services:
       KEYCLOAK_REALM: ds-2025-realm
       KEYCLOAK_CLIENT_ID: grupo-03
       KEYCLOAK_CLIENT_SECRET: 21cd6616-6571-4ee7-be29-0f781f77c74e
+<<<<<<< HEAD
+=======
+      KEYCLOAK_ISSUER_URL: http://keycloak:8080/realms/ds-2025-realm
+
+>>>>>>> back-max
     depends_on:
       mysql:
         condition: service_healthy

@@ -19,7 +19,7 @@ from django.conf import settings
 from utils.apiCliente.base import BaseAPIClient
 from utils.apiCliente.logistica import LogisticsClient
 from utils.apiCliente.stock import StockClient
-from utils.keycloak import get_service_token_provider
+from utils.keycloak import get_service_token_provider, KeycloakServiceTokenManager
 
 
 logger = logging.getLogger(__name__)
@@ -31,6 +31,29 @@ def _service_token_provider() -> Optional[Callable[[], str]]:
     if provider is None:
         logger.debug("No hay token de servicio disponible para clientes HTTP externos.")
     return provider
+
+
+@lru_cache(maxsize=1)
+def _logistica_token_provider() -> Optional[Callable[[], str]]:
+    """Token provider dedicado para logística (grupo-03)."""
+    try:
+        token_url = getattr(settings, "KEYCLOAK_TOKEN_URL", f"{settings.KEYCLOAK_SERVER_URL.rstrip('/')}/protocol/openid-connect/token")
+        client_id = getattr(settings, "LOGISTICA_KEYCLOAK_CLIENT_ID", None) or getattr(settings, "KEYCLOAK_SERVICE_CLIENT_ID", None)
+        client_secret = getattr(settings, "LOGISTICA_KEYCLOAK_CLIENT_SECRET", None) or getattr(settings, "KEYCLOAK_SERVICE_CLIENT_SECRET", None)
+        scope = getattr(settings, "LOGISTICA_KEYCLOAK_SCOPE", getattr(settings, "KEYCLOAK_SERVICE_SCOPE", None))
+        if not client_id or not client_secret:
+            logger.debug("No hay credenciales de servicio para logística.")
+            return None
+        manager = KeycloakServiceTokenManager(
+            token_url=token_url,
+            client_id=client_id,
+            client_secret=client_secret,
+            scope=scope,
+        )
+        return manager.get_token
+    except Exception:
+        logger.exception("No se pudo inicializar el token provider de logística.")
+        return None
 
 
 class PedidoAPIClient(BaseAPIClient):
@@ -189,7 +212,7 @@ def obtener_cliente_pedidos(**kwargs: Any) -> PedidoAPIClient:
 def obtener_cliente_logistica() -> LogisticsClient:
 
     base_url = getattr(settings, "LOGISTICA_API_BASE_URL","http://localhost:8000/api/") 
-    return LogisticsClient(base_url=base_url, token_provider=_service_token_provider())
+    return LogisticsClient(base_url=base_url, token_provider=_logistica_token_provider())
 
 
 def obtener_cliente_stock() -> StockClient:
