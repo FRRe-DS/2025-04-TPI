@@ -180,7 +180,7 @@ El sistema está desarrollado con **Django 5.1** e integra autenticación centra
 ### Opción 1: Instalación Rápida (Express)
 
 ```bash
-git clone https://github.com/frre-ds/2025-grupo-04-compras.git
+git clone https://github.com/FRRe-DS/2025-04-TPI.git
 cd 2025-04-TPI
 
 # Crear y activar entorno virtual
@@ -749,7 +749,7 @@ Para consultas técnicas referidas a este módulo (Grupo 04 - Compras):
 
 ## 📄 Licencia
 
-Este proyecto forma parte del Proyecto Integrador 2025 de la Facultad de Ciencias Exactas y Naturales (FRRE - Universidad Nacional de Córdoba).
+Este proyecto forma parte del Proyecto Integrador 2025 de la Facultad Tecnológica Nacional (FRRe - Facultad Regional Resistencia).
    - Integrantes:
       - ACOSTA, Santiago
       - AGUIRRE, Joaquin
