@@ -744,7 +744,7 @@ Para consultas técnicas referidas a este módulo (Grupo 04 - Compras):
 - Revisar documentación en `/documentacion/`
 - Consultar responsabilidades por módulo
 - Ejecutar `python verificar_instalacion.py` para diagnosticar
-
+- Comunicarse con el Jefe del proyecto MAXIMO VAZQUEZ
 ---
 
 ## 📄 Licencia
