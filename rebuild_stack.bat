@@ -2,7 +2,7 @@
 setlocal
 
 echo [1/3] Deteniendo contenedores y limpiando volumenes...
-docker compose down --volumes
+docker compose down
 if errorlevel 1 goto :error
 
 echo [2/3] Construyendo imagenes...
