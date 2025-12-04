@@ -52,7 +52,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 ) || 0;
                 const qty = item.quantity ?? item.cantidad ?? 1;
                 const name = product.name || product.nombre || `Producto ${item.productId || item.producto_id || ''}`;
-                const image = product.image || product.imagen || product.image_url || 'https://via.placeholder.com/120x120/f1f1f1/cccccc?text=Producto';
+                
+                // Extraer imagen - manejar campo 'imagenes' que puede ser objeto o lista
+                let image = 'https://via.placeholder.com/120x120/f1f1f1/cccccc?text=Producto';
+                const imagenes = product.imagenes || product.imagen || product.image || product.image_url;
+
+                if (imagenes) {
+                    if (typeof imagenes === 'string') {
+                        // Si es string directo, usarlo
+                        image = imagenes;
+                    } else if (typeof imagenes === 'object' && !Array.isArray(imagenes)) {
+                        // Si es un objeto, buscar la URL
+                        image = imagenes.url || image;
+                    } else if (Array.isArray(imagenes) && imagenes.length > 0) {
+                        // Si es una lista, buscar la imagen principal o la primera
+                        const principal = imagenes.find(img => img.esPrincipal);
+                        if (principal && principal.url) {
+                            image = principal.url;
+                        } else if (imagenes[0]) {
+                            image = typeof imagenes[0] === 'string' ? imagenes[0] : (imagenes[0].url || image);
+                        }
+                    }
+                }
+                
                 const itemSubtotal = price * qty;
                 subtotal += itemSubtotal;
 
