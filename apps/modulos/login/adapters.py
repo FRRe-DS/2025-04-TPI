@@ -40,6 +40,29 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
         if last_name:
             user.last_name = last_name
 
+        # Mapear roles de Keycloak a permisos de Django
+        # Keycloak puede enviar roles en diferentes formatos, verificamos ambos
+        roles = []
+        
+        # Roles de realm
+        if "realm_access" in extra and "roles" in extra["realm_access"]:
+            roles.extend(extra["realm_access"]["roles"])
+        
+        # Roles de resource/client
+        if "resource_access" in extra:
+            for client_id, client_data in extra["resource_access"].items():
+                if "roles" in client_data:
+                    roles.extend(client_data["roles"])
+        
+        # Si el usuario tiene el rol "admin", marcarlo como staff
+        if "admin" in roles or "administrator" in roles:
+            user.is_staff = True
+            user.is_superuser = True
+            log.info(f"Usuario {user.username} marcado como staff/superuser por tener rol admin en Keycloak")
+        else:
+            user.is_staff = False
+            user.is_superuser = False
+
         return user
     def pre_social_login(self, request, sociallogin):
         # Este método se llama justo antes de que se cree la cuenta social
@@ -61,6 +84,32 @@ class MySocialAccountAdapter(DefaultSocialAccountAdapter):
                 # Si no existe el usuario, se aplicará el comportamiento por defecto
                 #  (crear uno nuevo).
                 pass
+        
+        # Actualizar roles para usuarios existentes también
+        if sociallogin.user and sociallogin.user.pk:
+            extra = sociallogin.account.extra_data or {}
+            roles = []
+            
+            # Roles de realm
+            if "realm_access" in extra and "roles" in extra["realm_access"]:
+                roles.extend(extra["realm_access"]["roles"])
+            
+            # Roles de resource/client
+            if "resource_access" in extra:
+                for client_id, client_data in extra["resource_access"].items():
+                    if "roles" in client_data:
+                        roles.extend(client_data["roles"])
+            
+            # Actualizar permisos basados en roles
+            if "admin" in roles or "administrator" in roles:
+                sociallogin.user.is_staff = True
+                sociallogin.user.is_superuser = True
+                log.info(f"Usuario {sociallogin.user.username} actualizado como staff/superuser por tener rol admin en Keycloak")
+            else:
+                sociallogin.user.is_staff = False
+                sociallogin.user.is_superuser = False
+            
+            sociallogin.user.save()
 
     def on_authentication_error(
         self,
