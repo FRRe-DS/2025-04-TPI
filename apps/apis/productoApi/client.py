@@ -108,6 +108,10 @@ class ProductoAPIClient(BaseAPIClient):
         params = parametros_extra if parametros_extra else None
         return self.get(f"/productos/{producto_id}/", params=params, expected_status=200)
 
+    def listar_categorias(self) -> Any:
+        """Obtiene el listado de categorías disponibles desde la API de Stock."""
+        return self.get("/api/category/", expected_status=200)
+
 
 def obtener_cliente_productos(**kwargs: Any) -> ProductoAPIClient:
     """Helper para instanciar ``ProductoAPIClient`` usando la configuración del proyecto."""
