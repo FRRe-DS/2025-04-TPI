@@ -29,12 +29,16 @@ def checkout_view(request):
     """Pantalla de checkout para los pedidos."""
     from utils.apiCliente.logistica import LogisticsClient
     from utils.apiCliente.base import APIError
+    from utils.keycloak import get_service_token_provider
     
     tipos_envio = []
     
     # Intentar obtener métodos de transporte desde la API de Logística
     try:
-        log_client = LogisticsClient(settings.LOGISTICA_API_BASE_URL)
+        log_client = LogisticsClient(
+            settings.LOGISTICA_API_BASE_URL,
+            token_provider=get_service_token_provider()
+        )
         response = log_client.get_transport_methods()
         
         # La API devuelve: {"transportMethods": [{"id": 1, "name": "Air Transport", "type": "air", "estimatedDays": "1-3"}, ...]}
@@ -260,6 +264,7 @@ def api_checkout_confirm(request):
         from utils.apiCliente.stock import StockClient
         from utils.apiCliente.logistica import LogisticsClient
         from utils.apiCliente.base import APIError
+        from utils.keycloak import get_service_token_provider
         payload = json.loads(request.body.decode('utf-8'))
     except Exception as e:
         logger.exception('JSON inválido en checkout_confirm')
@@ -275,7 +280,35 @@ def api_checkout_confirm(request):
 
     user = request.user
     stock_client = StockClient(settings.STOCK_API_BASE_URL)
-    log_client = LogisticsClient(settings.LOGISTICA_API_BASE_URL)
+    
+    # Intentar obtener token del usuario (si existe) para Logística
+    token_logistica = None
+    try:
+        from allauth.socialaccount.models import SocialToken
+        social_token = SocialToken.objects.filter(account__user=user, account__provider='keycloak').first()
+        if social_token:
+            token_logistica = social_token.token
+            logger.info(f"Usando token de usuario para Logística: {token_logistica[:10]}...")
+    except Exception as e:
+        logger.warning(f"No se pudo obtener token de usuario: {e}")
+
+    # Si no hay token de usuario, usar token de servicio
+    provider = None
+    if token_logistica:
+        provider = lambda: token_logistica
+    else:
+        try:
+            srv_provider = get_service_token_provider(silent=False)
+            token_srv = srv_provider()
+            logger.info(f"Usando token de servicio para Logística: {token_srv[:10]}...")
+            provider = lambda: token_srv
+        except Exception as e:
+            logger.error(f"Error obteniendo token de servicio: {e}")
+
+    log_client = LogisticsClient(
+        settings.LOGISTICA_API_BASE_URL,
+        token_provider=provider
+    )
 
     try:
         dir_envio = DireccionEnvio.objects.create(

@@ -58,6 +58,30 @@ class PedidoViewSet(viewsets.ModelViewSet):
         cliente_logistica = obtener_cliente_logistica()
         cliente_stock = obtener_cliente_stock()
 
+        # Intentar inyectar token de usuario si está disponible
+        try:
+            from allauth.socialaccount.models import SocialToken
+            from utils.keycloak import get_service_token_provider
+            
+            token_logistica = None
+            if request.user.is_authenticated:
+                social_token = SocialToken.objects.filter(account__user=request.user, account__provider='keycloak').first()
+                if social_token:
+                    token_logistica = social_token.token
+                    logger.info(f"Usando token de usuario para Logística: {token_logistica[:10]}...")
+            
+            if token_logistica:
+                cliente_logistica._token_provider = lambda: token_logistica
+            else:
+                # Si no hay token de usuario, forzar token de servicio
+                srv_provider = get_service_token_provider(silent=False)
+                token_srv = srv_provider()
+                logger.info(f"Usando token de servicio para Logística: {token_srv[:10]}...")
+                cliente_logistica._token_provider = lambda: token_srv
+                
+        except Exception as e:
+            logger.warning(f"Error configurando token para Logística: {e}")
+
         detalles_pedido = list(pedido.detalles.all())
         productos_logistica = [
             {"id": detalle.producto_id, "quantity": detalle.cantidad}

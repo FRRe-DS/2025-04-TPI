@@ -191,6 +191,12 @@ services:
       DB_USERNAME: shipping_user
       DB_PASSWORD: shipping_pass
       DB_DATABASE: shipping_db
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: ds-2025-realm
+      KEYCLOAK_CLIENT_ID: grupo-03
+      KEYCLOAK_CLIENT_SECRET: 21cd6616-6571-4ee7-be29-0f781f77c74e
+    extra_hosts:
+      - "localhost:host-gateway"
     depends_on:
       mysql:
         condition: service_healthy
