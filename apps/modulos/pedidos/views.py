@@ -165,22 +165,21 @@ def pago_fallido(request):
 def mis_pedidos(request):
     """
     Muestra el historial de pedidos del usuario.
-    Consume el endpoint /api/shopcart/history sin autenticación.
     """
-    import requests
+    from apps.apis.pedidoApi.serializer import PedidoSerializer
     
     pedidos = []
-    try:
-        resp = requests.get(
-            f"{settings.BASE_URL}/api/shopcart/history",
-            cookies=request.COOKIES,
-            timeout=5
-        )
-        if resp.status_code == 200:
-            pedidos = resp.json()
-    except Exception as e:
-        logger.exception("Error al obtener historial de pedidos desde API: %s", str(e))
-        pedidos = []
+    logger.info(f"Usuario autenticado: {request.user.is_authenticated}, Usuario: {request.user}")
+    
+    if request.user.is_authenticated:
+        # Obtener pedidos del usuario directamente del modelo
+        pedidos_queryset = Pedido.objects.filter(usuario=request.user).select_related("direccion_envio").prefetch_related("detalles").order_by('-creado_en')
+        logger.info(f"Pedidos encontrados: {pedidos_queryset.count()}")
+        serializer = PedidoSerializer(pedidos_queryset, many=True, context={"request": request})
+        pedidos = serializer.data
+        logger.info(f"Pedidos serializados: {len(pedidos)}")
+    else:
+        logger.warning("Usuario no autenticado intentando ver pedidos")
 
     context = {
         'pedidos': pedidos,
