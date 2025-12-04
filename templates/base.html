@@ -143,7 +143,11 @@
         }
         function actualizarVistaCarrito() {
             if (!cartItemsList || !cartTotalElement || !cartBadge || !cartEmptyMessage || !cartFooter || !checkoutButton) return;
+            
+            // Leer siempre desde sessionStorage para reflejar cambios de otras páginas/scripts
+            carrito = JSON.parse(sessionStorage.getItem('carrito_demo')) || [];
             sessionStorage.setItem('carrito_demo', JSON.stringify(carrito));
+            
             cartItemsList.innerHTML = '';
             let total = 0;
             let totalItems = 0;
@@ -227,12 +231,42 @@
                 window.actualizarCantidadProducto(productoId, nuevaCantidad);
             }
         });
-        window.limpiarCarrito = function() {
+        window.limpiarCarrito = async function() {
             if (confirm('¿Estás seguro de que deseas limpiar el carrito?')) {
-                carrito = [];
-                actualizarVistaCarrito();
+                try {
+                    // Limpiar en el servidor via API
+                    const response = await fetch('/compras/api/shopcart/clear/', {
+                        method: 'DELETE',
+                        credentials: 'include',
+                        headers: {
+                            'X-CSRFToken': getCookie('csrftoken') || ''
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        console.error('Error al limpiar carrito:', await response.text());
+                    }
+                    
+                    // Limpiar en el cliente
+                    carrito = [];
+                    sessionStorage.setItem('carrito_demo', JSON.stringify([]));
+                    actualizarVistaCarrito();
+                    
+                    // Disparar evento para actualizar otras vistas
+                    document.dispatchEvent(new CustomEvent('cartUpdated', { detail: { carrito: [] } }));
+                } catch (error) {
+                    console.error('Error al limpiar carrito:', error);
+                    alert('No se pudo limpiar el carrito. Por favor, intenta de nuevo.');
+                }
             }
         };
+        
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
+        
         const clearCartBtn = document.getElementById('clear-cart-btn');
         if (clearCartBtn) {
             clearCartBtn.addEventListener('click', window.limpiarCarrito);
@@ -273,6 +307,10 @@
             .cart-quantity-input:focus { outline: none; }
         `;
         document.head.appendChild(style);
+        
+        // Exponer globalmente para que inicio.js pueda llamarla
+        window.actualizarVistaCarrito = actualizarVistaCarrito;
+        
         actualizarVistaCarrito();
     });
     </script>

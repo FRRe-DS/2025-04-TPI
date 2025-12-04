@@ -24,18 +24,14 @@ services:
     env_file:
       - .env
     environment:
-      # URLs y configuración general
       SITE_URL: http://localhost
       APP_PATH_PREFIX: /compras
       
-      # URLs de APIs
       BASE_API_URL: http://nginx/compras/api/
       PRODUCTOS_API_BASE_URL: http://nginx/compras
       
-      # Configuración de modo Mock/Producción
       USE_MOCK_APIS: "false"
       
-      # Configuración de Base de Datos
       USE_SQLITE: "false"
       POSTGRES_DB: compras_db
       POSTGRES_USER: compras_user
@@ -43,9 +39,8 @@ services:
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
       
-      # Configuración de Keycloak
-      KEYCLOAK_BASE_URL: http://keycloak:8080
-      KEYCLOAK_PUBLIC_BASE_URL: http://localhost:8080
+      KEYCLOAK_BASE_URL: http://keycloak:8080        # interno
+      KEYCLOAK_PUBLIC_BASE_URL: http://localhost:8080  # navegador
       KEYCLOAK_REALM: ds-2025-realm
       KEYCLOAK_CLIENT_ID: grupo-04
       KEYCLOAK_CLIENT_SECRET: 6be1bec1-9472-499f-ab37-883d78f57829
@@ -56,16 +51,19 @@ services:
       LOGISTICA_KEYCLOAK_CLIENT_ID: grupo-03
       LOGISTICA_KEYCLOAK_CLIENT_SECRET: 21cd6616-6571-4ee7-be29-0f781f77c74e
       LOGISTICA_KEYCLOAK_SCOPE: "envios:write envios:read productos:read"
-      KEYCLOAK_ISSUER_URL: http://keycloak:8080/realms/ds-2025-realm
+
+      # 👇 CORREGIDO: ahora coincide con hostname público real de Keycloak
+      KEYCLOAK_ISSUER_URL: http://localhost:8080/realms/ds-2025-realm
+
       STOCK_API_BASE_URL: http://nginx/stock/
       LOGISTICA_API_BASE_URL: http://shipping-back:3010
+
     command: >
       /bin/sh -c "
       echo '🔄 Esperando a PostgreSQL...' &&
       sleep 5 &&
       echo '📦 Aplicando migraciones...' &&
       python manage.py migrate --noinput &&
-      echo '✅ Migraciones aplicadas' &&
       echo '📁 Recolectando archivos estáticos...' &&
       python manage.py collectstatic --noinput &&
       echo '🚀 Iniciando Gunicorn...' &&
@@ -121,11 +119,15 @@ services:
     env_file:
       - keycloak/.env
     environment:
-      KC_HOSTNAME: keycloak
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      # 👇 ESTA ES LA CORRECCIÓN PRINCIPAL
+      KC_HOSTNAME: localhost
       KC_HOSTNAME_STRICT: "false"
       KC_HOSTNAME_STRICT_HTTPS: "false"
       KC_HOSTNAME_PORT: 8080
       KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
+
       KC_HTTP_ENABLED: "true"
       KC_HEALTH_ENABLED: "true"
       KC_DB: postgres
@@ -141,7 +143,8 @@ services:
         condition: service_healthy
     networks:
       - app_net
-#Stock G2
+
+  #Stock G2
   stock-backend:
     image: ghcr.io/frre-ds/backend-stock-g02:latest
     container_name: stock-backend
@@ -161,8 +164,6 @@ services:
     networks:
       - app_net
 
-  # FIN STOCK G2
-  
   # LOGÍSTICA G3
   mysql:
     image: mysql:8.0
@@ -196,11 +197,14 @@ services:
       DB_USERNAME: shipping_user
       DB_PASSWORD: shipping_pass
       DB_DATABASE: shipping_db
+
       KEYCLOAK_AUTH_SERVER_URL: http://keycloak:8080
       KEYCLOAK_REALM: ds-2025-realm
       KEYCLOAK_CLIENT_ID: grupo-03
       KEYCLOAK_CLIENT_SECRET: 21cd6616-6571-4ee7-be29-0f781f77c74e
-      KEYCLOAK_ISSUER_URL: http://keycloak:8080/realms/ds-2025-realm
+
+      # 👇 coherente con KC_HOSTNAME=localhost
+      KEYCLOAK_ISSUER_URL: http://localhost:8080/realms/ds-2025-realm
 
     depends_on:
       mysql:
@@ -209,7 +213,6 @@ services:
       - "3010"
     networks:
       - app_net
-  # FIN LOGÍSTICA G3
 
 volumes:
   postgres_data:
