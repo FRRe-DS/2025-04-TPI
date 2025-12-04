@@ -85,8 +85,8 @@ def checkout_view(request):
         "tipos_envio": tipos_envio,
         "checkout_endpoint": build_prefixed_path("/api/shopcart/checkout"),
         "api_base": build_prefixed_path("/api").rstrip("/"),
-        "success_url": build_prefixed_path(reverse("pedidos:pago_exitoso")),
-        "failure_url": build_prefixed_path(reverse("pedidos:pago_fallido")),
+        "success_url": reverse("pedidos:pago_exitoso"),
+        "failure_url": reverse("pedidos:pago_fallido"),
     }
     return render(request, "checkout.html", context)
 
