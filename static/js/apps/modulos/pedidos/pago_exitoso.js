@@ -4,7 +4,6 @@ document.addEventListener('DOMContentLoaded', function () {
         renderer: 'svg',
         loop: false,
         autoplay: true,
-        // *** RUTA DIRECTA DE ARCHIVOS ESTATICOS DE DJANGO ***
-        path: "/static/lottie/apps/modulos/pedidos/checkmark.json" 
+        path: "/compras/static/lottie/apps/modulos/pedidos/checkmark.json" 
     });
 });
