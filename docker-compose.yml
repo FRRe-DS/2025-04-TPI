@@ -47,14 +47,7 @@ services:
       KEYCLOAK_EXPECTED_AUDIENCE: account,grupo-04
       KEYCLOAK_SERVICE_CLIENT_ID: grupo-04
       KEYCLOAK_SERVICE_CLIENT_SECRET: 6be1bec1-9472-499f-ab37-883d78f57829
-      KEYCLOAK_SERVICE_SCOPE: "productos:read envios:read"
-      LOGISTICA_KEYCLOAK_CLIENT_ID: grupo-03
-      LOGISTICA_KEYCLOAK_CLIENT_SECRET: 21cd6616-6571-4ee7-be29-0f781f77c74e
-      LOGISTICA_KEYCLOAK_SCOPE: "envios:write envios:read productos:read"
-
-      # 👇 CORREGIDO: ahora coincide con hostname público real de Keycloak
-      KEYCLOAK_ISSUER_URL: http://localhost:8080/realms/ds-2025-realm
-
+      KEYCLOAK_SERVICE_SCOPE: ""
       STOCK_API_BASE_URL: http://nginx/stock/
       LOGISTICA_API_BASE_URL: http://shipping-back:3010
 
@@ -119,13 +112,9 @@ services:
     env_file:
       - keycloak/.env
     environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-      # 👇 ESTA ES LA CORRECCIÓN PRINCIPAL
       KC_HOSTNAME: localhost
-      KC_HOSTNAME_STRICT: "false"
-      KC_HOSTNAME_STRICT_HTTPS: "false"
       KC_HOSTNAME_PORT: 8080
+      KC_HOSTNAME_STRICT_HTTPS: "false"
       KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
 
       KC_HTTP_ENABLED: "true"
@@ -197,15 +186,12 @@ services:
       DB_USERNAME: shipping_user
       DB_PASSWORD: shipping_pass
       DB_DATABASE: shipping_db
-
-      KEYCLOAK_AUTH_SERVER_URL: http://keycloak:8080
+      KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: ds-2025-realm
       KEYCLOAK_CLIENT_ID: grupo-03
       KEYCLOAK_CLIENT_SECRET: 21cd6616-6571-4ee7-be29-0f781f77c74e
-
-      # 👇 coherente con KC_HOSTNAME=localhost
-      KEYCLOAK_ISSUER_URL: http://localhost:8080/realms/ds-2025-realm
-
+    extra_hosts:
+      - "localhost:host-gateway"
     depends_on:
       mysql:
         condition: service_healthy

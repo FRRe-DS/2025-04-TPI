@@ -13,7 +13,7 @@
         </div>
         <div class="nav-actions">
             {% if user.is_authenticated %}
-                <span class="action-link">Hola, {{ user.first_name }}</span>
+                <span class="action-link">Hola, {{ user.first_name|default:user.username|title }}</span>
                 <a href="{% url 'login:cerrar_sesion' %}" class="action-link">Salir</a>
             {% else %}
                 <a href="{% url 'login:login' %}" class="action-link">Ingresar</a>

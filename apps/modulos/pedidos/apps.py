@@ -15,9 +15,10 @@ class PedidosConfig(AppConfig):
             with connection.cursor() as cursor:
                 from .models import Pedido
                 
-                # Limpiar pedidos al reiniciar el servidor
-                Pedido.objects.all().delete()
-                print("✅ Pedidos limpios al reiniciar el servidor")
+                # Comentado: No borrar pedidos en producción
+                # Pedido.objects.all().delete()
+                # print("✅ Pedidos limpios al reiniciar el servidor")
+                pass
         except (OperationalError, ProgrammingError):
             # Las tablas aún no existen (ej. durante migraciones)
             pass

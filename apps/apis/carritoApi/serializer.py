@@ -21,7 +21,7 @@ class CartItemSerializer(serializers.ModelSerializer):
 			# Si productos es una lista, buscar por ID
 			if isinstance(productos, list):
 				for p in productos:
-					if p.get('id') == obj.producto_id:
+					if int(p.get('id')) == int(obj.producto_id):
 						return p
 			# Si productos es un dict indexado por ID
 			elif isinstance(productos, dict) and obj.producto_id in productos:
