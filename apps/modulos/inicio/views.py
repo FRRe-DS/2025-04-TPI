@@ -2,6 +2,8 @@ from django.shortcuts import render
 import logging
 from time import perf_counter
 from apps.apis.productoApi.client import ProductoAPIClient, obtener_cliente_productos
+from utils.apiCliente.stock import StockClient
+from django.conf import settings
 import unicodedata
 
 logger = logging.getLogger(__name__)
@@ -92,11 +94,27 @@ def inicio_view(request):
             productos_raw = resultado or []
 
         for p in productos_raw:
+            # Debug: mostrar estructura del primer producto
+            if productos_raw.index(p) == 0:
+                logger.debug("Estructura del primer producto raw: %s", p)
+            
             categoria = None
-            if isinstance(p.get("categoria"), dict):
-                categoria = p["categoria"].get("nombre")
-            else:
-                categoria = p.get("categoria_nombre") or p.get("categoria")
+            # El campo viene como 'categorias' (plural) y es una lista
+            categorias_list = p.get("categorias", [])
+            if categorias_list and isinstance(categorias_list, list) and len(categorias_list) > 0:
+                # Tomar la primera categoría de la lista
+                primera_cat = categorias_list[0]
+                if isinstance(primera_cat, dict):
+                    categoria = primera_cat.get("nombre")
+                elif isinstance(primera_cat, str):
+                    categoria = primera_cat
+            
+            # Fallback: intentar con campo singular 'categoria'
+            if not categoria:
+                if isinstance(p.get("categoria"), dict):
+                    categoria = p["categoria"].get("nombre")
+                else:
+                    categoria = p.get("categoria_nombre") or p.get("categoria")
 
             # Obtener imagen principal de la lista de imágenes
             imagenes_list = p.get("imagenes", [])
@@ -136,12 +154,44 @@ def inicio_view(request):
                 "imagen": imagen or "",
             })
         logger.info("Obtenidos %d productos (raw=%d) desde Stock API", len(productos), len(productos_raw))
+        # Log para debug: mostrar categorías únicas en los productos
+        categorias_en_productos = {p.get("categoria", "") for p in productos if p.get("categoria", "")}
+        logger.debug("Categorías encontradas en productos: %s", sorted(categorias_en_productos))
     except Exception as e:
         logger.exception("Error obteniendo productos desde Stock API para path=%s user=%s: %s", request.get_full_path(), getattr(request, "user", None), e)
         productos = []
 
-    # Extraer categorías y marcas disponibles ANTES de filtrar
-    categorias_disponibles = sorted({p.get("categoria", "") for p in productos if p.get("categoria", "")})
+    # Obtener categorías desde la API de Stock usando StockClient
+    categorias_disponibles = []
+    try:
+        stock_client = StockClient(base_url=settings.STOCK_API_BASE_URL)
+        resultado_categorias = stock_client.listar_categorias()
+        logger.debug("Respuesta de categorías desde Stock: %s", resultado_categorias)
+        
+        if isinstance(resultado_categorias, list):
+            categorias_raw = resultado_categorias
+        elif isinstance(resultado_categorias, dict) and "data" in resultado_categorias:
+            categorias_raw = resultado_categorias.get("data") or []
+        else:
+            categorias_raw = []
+        
+        # Extraer nombres de categorías
+        for cat in categorias_raw:
+            if isinstance(cat, dict):
+                nombre = cat.get("nombre") or cat.get("name") or cat.get("title")
+                if nombre:
+                    categorias_disponibles.append(nombre)
+            elif isinstance(cat, str):
+                categorias_disponibles.append(cat)
+        
+        categorias_disponibles = sorted(set(categorias_disponibles))
+        logger.info("Obtenidas %d categorías desde Stock API", len(categorias_disponibles))
+    except Exception as e:
+        logger.exception("Error obteniendo categorías desde Stock API: %s", e)
+        # Fallback: extraer categorías de los productos si falla la API
+        categorias_disponibles = sorted({p.get("categoria", "") for p in productos if p.get("categoria", "")})
+
+    # Extraer marcas disponibles de los productos
     marcas_disponibles = sorted({p.get("marca", "") for p in productos if p.get("marca", "")})
 
     # =============================
@@ -151,6 +201,13 @@ def inicio_view(request):
     q = normalize(termino_busqueda)
     cat_f = normalize(categoria_filtrada)
     marca_f = normalize(marca_filtrada)
+
+    logger.debug("Categoría filtrada (normalizada): '%s' (original: '%s')", cat_f, categoria_filtrada)
+    if productos and cat_f:
+        # Log de ejemplo: primera categoría de producto
+        ejemplo_cat = normalize(productos[0].get("categoria", ""))
+        logger.debug("Ejemplo categoría de producto (normalizada): '%s' (original: '%s')", 
+                    ejemplo_cat, productos[0].get("categoria", ""))
 
     def _filtrar(prod):
         nombre = normalize(prod.get("nombre", ""))        
