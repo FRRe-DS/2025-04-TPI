@@ -12,6 +12,35 @@ log = logging.getLogger("keycloak")
 User = get_user_model()
 
 class MySocialAccountAdapter(DefaultSocialAccountAdapter):
+    def populate_user(self, request, sociallogin, data):
+        """
+        Completa los datos del usuario de Django con la info que viene de Keycloak.
+        Este método lo llama allauth al crear el usuario.
+        """
+        user = sociallogin.user
+
+        extra = sociallogin.account.extra_data or {}
+
+        # Username
+        preferred_username = extra.get("preferred_username")
+        if preferred_username:
+            user.username = preferred_username
+
+        # Email
+        email = extra.get("email")
+        if email:
+            user.email = email
+
+        # Nombre y apellido
+        first_name = extra.get("given_name")
+        last_name = extra.get("family_name")
+
+        if first_name:
+            user.first_name = first_name
+        if last_name:
+            user.last_name = last_name
+
+        return user
     def pre_social_login(self, request, sociallogin):
         # Este método se llama justo antes de que se cree la cuenta social
         # o se inicie el proceso de login con la cuenta social.

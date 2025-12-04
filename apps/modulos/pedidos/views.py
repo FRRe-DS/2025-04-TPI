@@ -336,7 +336,9 @@ def api_checkout_confirm(request):
                 # asegurarnos de que recibimos un dict con los datos esperados
                 if isinstance(candidate, dict):
                     prod = candidate
-                    precio_unitario = D(str(prod.get('price','0.00')))
+                    # Obtener precio de forma robusta: soportar keys 'price' o 'precio'
+                    price_val = prod.get('price') or prod.get('precio') or '0.00'
+                    precio_unitario = D(str(price_val))
                 else:
                     # si el cliente devolvió un objeto inesperado (ej. MagicMock), lo ignoramos
                     raise ValueError('Producto no es dict')

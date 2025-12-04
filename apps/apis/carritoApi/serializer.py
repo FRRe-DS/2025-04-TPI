@@ -42,7 +42,7 @@ class CartItemSerializer(serializers.ModelSerializer):
 		
 		# Si no hay productos en contexto y no es mock, hace la petición individual
 		try:
-			stock_client = StockClient(base_url=settings.STOCK_API_BASE)
+			stock_client = StockClient(base_url=settings.STOCK_API_BASE_URL)
 			producto = stock_client.obtener_producto(obj.producto_id)
 			return producto
 		except Exception:

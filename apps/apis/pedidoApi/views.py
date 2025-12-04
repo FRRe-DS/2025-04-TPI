@@ -467,8 +467,13 @@ class PedidoViewSet(viewsets.ModelViewSet):
                     qty = int(item.cantidad or 1)
                     try:
                         producto = stock_client.obtener_producto(pid)
-                        precio_unitario = Decimal(str(producto.get("price", 0)))
-                        nombre_producto = producto.get("name", f"Producto {pid}")
+                        # Obtener precio de forma robusta: soportar keys 'price' o 'precio'
+                        if isinstance(producto, dict):
+                            price_val = producto.get("price") or producto.get("precio") or 0
+                            precio_unitario = Decimal(str(price_val))
+                            nombre_producto = producto.get("name") or producto.get("nombre") or f"Producto {pid}"
+                        else:
+                            raise ValueError("Producto no es dict")
                     except Exception:
                         precio_unitario = Decimal("0.00")
                         nombre_producto = f"Producto {pid}"
