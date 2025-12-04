@@ -10,7 +10,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U compras_user -d compras_db"]
+      test: [ "CMD-SHELL", "pg_isready -U compras_user -d compras_db" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -26,21 +26,21 @@ services:
     environment:
       SITE_URL: http://localhost
       APP_PATH_PREFIX: /compras
-      
+
       BASE_API_URL: http://nginx/compras/api/
       PRODUCTOS_API_BASE_URL: http://nginx/compras
-      
+
       USE_MOCK_APIS: "false"
-      
+
       USE_SQLITE: "false"
       POSTGRES_DB: compras_db
       POSTGRES_USER: compras_user
       POSTGRES_PASSWORD: compras_password
       POSTGRES_HOST: postgres
       POSTGRES_PORT: 5432
-      
-      KEYCLOAK_BASE_URL: http://keycloak:8080        # interno
-      KEYCLOAK_PUBLIC_BASE_URL: http://localhost:8080  # navegador
+
+      KEYCLOAK_BASE_URL: http://keycloak:8080 # interno
+      KEYCLOAK_PUBLIC_BASE_URL: http://localhost:8080 # navegador
       KEYCLOAK_REALM: ds-2025-realm
       KEYCLOAK_CLIENT_ID: grupo-04
       KEYCLOAK_CLIENT_SECRET: 6be1bec1-9472-499f-ab37-883d78f57829
@@ -52,16 +52,7 @@ services:
       LOGISTICA_API_BASE_URL: http://shipping-back:3010
 
     command: >
-      /bin/sh -c "
-      echo '🔄 Esperando a PostgreSQL...' &&
-      sleep 5 &&
-      echo '📦 Aplicando migraciones...' &&
-      python manage.py migrate --noinput &&
-      echo '📁 Recolectando archivos estáticos...' &&
-      python manage.py collectstatic --noinput &&
-      echo '🚀 Iniciando Gunicorn...' &&
-      gunicorn Main.wsgi:application --bind 0.0.0.0:8000 --workers 3
-      "
+      /bin/sh -c " echo '🔄 Esperando a PostgreSQL...' && sleep 5 && echo '📦 Aplicando migraciones...' && python manage.py migrate --noinput && echo '📁 Recolectando archivos estáticos...' && python manage.py collectstatic --noinput && echo '🚀 Iniciando Gunicorn...' && gunicorn Main.wsgi:application --bind 0.0.0.0:8000 --workers 3 "
     volumes:
       - static_data:/app/staticfiles
       - media_data:/app/media
@@ -168,7 +159,7 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "shipping_user", "-pshipping_pass"]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "shipping_user", "-pshipping_pass" ]
       interval: 3s
       timeout: 5s
       retries: 20
@@ -190,6 +181,9 @@ services:
       KEYCLOAK_REALM: ds-2025-realm
       KEYCLOAK_CLIENT_ID: grupo-03
       KEYCLOAK_CLIENT_SECRET: 21cd6616-6571-4ee7-be29-0f781f77c74e
+      PORT: 3010
+      KEYCLOAK_AUTH_SERVER_URL: http://localhost:8080 #tu URL de keycloak
+      STOCK_SERVICE_URL: http://nginx/stock #no hace falta que se la URL de tu API Gateway, puede ser la URL del servicio de stock directo
     extra_hosts:
       - "localhost:host-gateway"
     depends_on:
@@ -206,6 +200,7 @@ volumes:
   static_data:
   media_data:
   keycloak_db_data:
+
 
 networks:
   app_net:
