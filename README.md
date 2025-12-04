@@ -13,7 +13,7 @@ cd 2025-04-TPI
 docker-compose up --build
 
 # ✅ Una vez que veas "Application startup complete", abre en tu navegador:
-# http://localhost:8000
+# http://localhost
 ```
 
 ---
