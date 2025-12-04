@@ -4,7 +4,11 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.utils import timezone
+<<<<<<< HEAD
 from django.conf import settings
+=======
+from apps.apis.pedidoApi.models import Pedido
+>>>>>>> a061ccb2aa7995be39065b91fc9313d9213f064a
 
 
 # =======================
@@ -12,20 +16,40 @@ from django.conf import settings
 # =======================
 def _dashboard_context():
     """
-    Devuelve datos de ejemplo para mostrar en el panel de administración.
-    Podés reemplazar esto con tus datos reales cuando conectes el backend.
+    Devuelve datos reales de pedidos desde PostgreSQL.
     """
-    now = timezone.now()
+    # Obtener últimos 3 pedidos ordenados por fecha de creación
+    ultimos_pedidos = Pedido.objects.select_related('usuario').order_by('-creado_en')[:3]
+    
+    # Mapear estados a formato esperado por el template
+    estado_map = {
+        'borrador': 'PENDIENTE',
+        'pendiente': 'PENDIENTE',
+        'confirmado': 'OK',
+        'cancelado': 'ERROR',
+    }
+    
+    transacciones = []
+    for pedido in ultimos_pedidos:
+        transacciones.append({
+            "id": pedido.id,
+            "usuario": pedido.usuario.username if pedido.usuario else "Anónimo",
+            "monto": f"{pedido.total:,.2f}",
+            "fecha": pedido.creado_en,
+            "estado": estado_map.get(pedido.estado, 'PENDIENTE'),
+        })
+    
+    # Calcular KPIs desde la base de datos
+    total_pedidos = Pedido.objects.count()
+    pedidos_confirmados = Pedido.objects.filter(estado='confirmado').count()
+    ingresos_totales = sum(p.total for p in Pedido.objects.filter(estado='confirmado'))
+    
     return {
-        "kpi_ingresos": "1.250.000",
-        "kpi_usuarios_nuevos": 42,
-        "kpi_items": 318,
-        "kpi_ordenes_ok": 289,
-        "ultimas_transacciones": [
-            {"id": 1021, "usuario": "maxi.v", "monto": "18.200", "fecha": now, "estado": "OK"},
-            {"id": 1020, "usuario": "anap", "monto": "7.950", "fecha": now, "estado": "PENDIENTE"},
-            {"id": 1019, "usuario": "jps", "monto": "3.100", "fecha": now, "estado": "ERROR"},
-        ],
+        "kpi_ingresos": f"{ingresos_totales:,.0f}",
+        "kpi_usuarios_nuevos": 42,  # Puedes calcular esto desde User.objects si quieres
+        "kpi_items": total_pedidos,
+        "kpi_ordenes_ok": pedidos_confirmados,
+        "ultimas_transacciones": transacciones,
     }
 
 
