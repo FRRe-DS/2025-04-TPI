@@ -21,8 +21,8 @@ def _dashboard_context():
     estado_map = {
         'borrador': 'PENDIENTE',
         'pendiente': 'PENDIENTE',
-        'confirmado': 'OK',
-        'cancelado': 'ERROR',
+        'confirmado': 'CONFIRMADO',
+        'cancelado': 'CANCELADO',
     }
     
     transacciones = []
