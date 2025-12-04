@@ -83,6 +83,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // Mapeo de tipos de transporte a nombres legibles
+    const transportTypeNames = {
+        'air': 'Air Transport',
+        'sea': 'Sea Transport',
+        'road': 'Road Transport',
+        'rail': 'Rail Transport',
+        'domicilio': 'Envío a domicilio',
+        'demo_tracking': 'Demo con seguimiento',
+    };
+
+    const getTransportName = (value) => {
+        return transportTypeNames[value] || value;
+    };
+
     const populateFinalSummary = () => {
         const nombre = document.getElementById('nombre')?.value || '';
         const telefono = document.getElementById('telefono')?.value || '';
@@ -101,7 +115,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (summaryTelefono) summaryTelefono.textContent = telefono || 'No especificado';
 
         if (shippingRadio) {
-            if (shippingRadio.value === 'domicilio') {
+            const transportType = shippingRadio.value;
+            const shippingMethod = document.getElementById('summary-shipping-method');
+            
+            if (transportType === 'domicilio') {
                 if (shippingSection) shippingSection.style.display = 'block';
 
                 let addressLine1 = calle;
@@ -112,21 +129,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (line1) line1.textContent = addressLine1;
                 if (line2) line2.textContent = `${ciudad}${provincia ? ', ' + provincia : ''}${cp ? ' (' + cp + ')' : ''}`;
 
-                const shippingMethod = document.getElementById('summary-shipping-method');
-                if (shippingMethod) shippingMethod.textContent = 'Envio a domicilio';
+                if (shippingMethod) shippingMethod.textContent = 'Envío a domicilio';
                 orderStatusCard?.classList.add('hidden');
-            } else if (shippingRadio.value === 'demo_tracking') {
+            } else if (transportType === 'demo_tracking') {
                 if (shippingSection) shippingSection.style.display = 'none';
-                const shippingMethod = document.getElementById('summary-shipping-method');
                 if (shippingMethod) shippingMethod.textContent = 'Demo con seguimiento';
                 if (orderStatusCard) {
                     orderStatusCard.classList.remove('hidden');
                     orderStatusCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
             } else {
+                // Para tipos de transporte (air, sea, road, rail)
                 if (shippingSection) shippingSection.style.display = 'none';
-                const shippingMethod = document.getElementById('summary-shipping-method');
-                if (shippingMethod) shippingMethod.textContent = 'Retiro en sucursal';
+                if (shippingMethod) shippingMethod.textContent = getTransportName(transportType);
                 orderStatusCard?.classList.add('hidden');
             }
         }
