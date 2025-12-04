@@ -621,7 +621,7 @@ class PedidoViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get"], url_path="tracking")
     def obtener_tracking(self, request, pk=None):
-        """Obtiene el estado del envío/tracking asociado al pedido."""
+        """Obtiene el estado del envío/tracking asociado al pedido y sincroniza el estado."""
         pedido = self.get_object()
         if not pedido.referencia_envio:
             return Response(
@@ -644,4 +644,10 @@ class PedidoViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_502_BAD_GATEWAY,
                 )
 
-        return Response({"tracking": data, "pedido_id": pedido.id}, status=status.HTTP_200_OK)
+        # Sincronizar estado del pedido con el estado de Logística
+        if data and 'status' in data:
+            estado_actualizado = pedido.sincronizar_estado_desde_logistica(data['status'])
+            if estado_actualizado:
+                logger.info(f"Pedido {pedido.id} sincronizado a estado: {pedido.estado}")
+
+        return Response({"tracking": data, "pedido_id": pedido.id, "estado_pedido": pedido.estado}, status=status.HTTP_200_OK)

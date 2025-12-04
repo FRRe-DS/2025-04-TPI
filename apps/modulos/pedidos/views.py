@@ -193,20 +193,33 @@ def mis_pedidos(request):
                 token_provider=get_service_token_provider()
             )
             
-            for pedido in pedidos:
+            for pedido_data in pedidos:
                 tracking_info = None
-                if pedido.get('referencia_envio'):
+                if pedido_data.get('referencia_envio'):
                     try:
                         # Consultar el seguimiento usando el shipping_id
-                        tracking_info = log_client.get_shipment(pedido['referencia_envio'])
-                        logger.info(f"Seguimiento obtenido para pedido {pedido['id']}: {tracking_info}")
+                        tracking_info = log_client.get_shipment(pedido_data['referencia_envio'])
+                        logger.info(f"Seguimiento obtenido para pedido {pedido_data['id']}: {tracking_info}")
+                        
+                        # Sincronizar estado del pedido con Logística
+                        if tracking_info and 'status' in tracking_info:
+                            try:
+                                pedido_obj = pedidos_queryset.get(id=pedido_data['id'])
+                                estado_actualizado = pedido_obj.sincronizar_estado_desde_logistica(tracking_info['status'])
+                                if estado_actualizado:
+                                    logger.info(f"Pedido {pedido_obj.id} sincronizado a estado: {pedido_obj.estado}")
+                                    # Actualizar el estado en los datos serializados
+                                    pedido_data['estado'] = pedido_obj.estado
+                            except Exception as e:
+                                logger.warning(f"Error al sincronizar estado del pedido {pedido_data['id']}: {e}")
+                                
                     except APIError as e:
-                        logger.warning(f"No se pudo obtener seguimiento para pedido {pedido['id']}: {e}")
+                        logger.warning(f"No se pudo obtener seguimiento para pedido {pedido_data['id']}: {e}")
                     except Exception as e:
-                        logger.exception(f"Error inesperado al obtener seguimiento para pedido {pedido['id']}: {e}")
+                        logger.exception(f"Error inesperado al obtener seguimiento para pedido {pedido_data['id']}: {e}")
                 
                 # Agregar info de tracking al pedido
-                pedido['tracking_info'] = tracking_info
+                pedido_data['tracking_info'] = tracking_info
                 
         except Exception as e:
             logger.exception(f"Error al inicializar cliente de logística: {e}")

@@ -56,6 +56,7 @@ class Pedido(models.Model):
         BORRADOR = "borrador", "Borrador"
         PENDIENTE = "pendiente", "Pendiente"
         CONFIRMADO = "confirmado", "Confirmado"
+        ENTREGADO = "entregado", "Entregado"
         CANCELADO = "cancelado", "Cancelado"
 
     usuario = models.ForeignKey(
@@ -100,6 +101,34 @@ class Pedido(models.Model):
         if guardar:
             self.save(update_fields=["total", "actualizado_en"])
         return total_calculado
+
+    def sincronizar_estado_desde_logistica(self, estado_logistica: str) -> bool:
+        """Actualiza el estado del pedido basado en el estado de Logística.
+        
+        Mapeo de estados:
+        - created, reserved -> confirmado (sin cambio)
+        - in_transit, arrived, in_distribution -> en_camino
+        - delivered -> entregado
+        - cancelled -> cancelado
+        
+        Retorna True si hubo cambio de estado.
+        """
+        MAPEO_ESTADOS = {
+            'created': self.Estado.PENDIENTE,
+            'reserved': self.Estado.CONFIRMADO,
+            'in_transit': self.Estado.CONFIRMADO,
+            'arrived': self.Estado.CONFIRMADO,
+            'in_distribution': self.Estado.CONFIRMADO,
+            'delivered': self.Estado.ENTREGADO,
+            'cancelled': self.Estado.CANCELADO,
+        }
+        
+        nuevo_estado = MAPEO_ESTADOS.get(estado_logistica.lower())
+        if nuevo_estado and nuevo_estado != self.estado:
+            self.estado = nuevo_estado
+            self.save(update_fields=["estado", "actualizado_en"])
+            return True
+        return False
 
     def marcar_confirmado(
         self,
