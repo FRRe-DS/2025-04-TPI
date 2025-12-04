@@ -58,6 +58,7 @@ services:
       LOGISTICA_KEYCLOAK_SCOPE: "envios:write envios:read productos:read"
       KEYCLOAK_ISSUER_URL: http://keycloak:8080/realms/ds-2025-realm
       STOCK_API_BASE_URL: http://nginx/stock/
+      STOCK_UI_URL: http://localhost:8082
       LOGISTICA_API_BASE_URL: http://shipping-back:3010
     command: >
       /bin/sh -c "
@@ -160,6 +161,29 @@ services:
       - keycloak
     networks:
       - app_net
+
+  # stock-frontend (levantado por el Grupo 02 en instancia separada)
+  # build:
+  #   context: ./frontend
+  #   dockerfile: Dockerfile
+  #   args:
+  #     - NEXT_PUBLIC_API_URL=http://localhost/stock/api/v1
+  #     - NEXT_PUBLIC_KEYCLOAK_URL=http://localhost:8080
+  #     - NEXT_PUBLIC_KEYCLOAK_REALM=ds-2025-realm
+  #     - NEXT_PUBLIC_KEYCLOAK_CLIENT_ID=grupo-02
+  # container_name: stock-frontend
+  # expose:
+  #   - "3000"
+  # environment:
+  #   NEXT_PUBLIC_API_URL: http://localhost/stock/api/v1
+  #   NEXT_PUBLIC_KEYCLOAK_URL: http://localhost:8080
+  #   NEXT_PUBLIC_KEYCLOAK_REALM: ds-2025-realm
+  #   NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: grupo-02
+  # depends_on:
+  #   - stock-backend
+  #   - keycloak
+  # networks:
+  #   - app_net
 
   # FIN STOCK G2
   

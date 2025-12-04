@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.utils import timezone
+from django.conf import settings
 
 
 # =======================
@@ -41,7 +42,10 @@ def administracion_view(request):
     # if not request.user.is_authenticated:
     #     return redirect('login')
 
-    return render(request, 'admin_menu_principal.html')
+    context = {
+        'stock_ui_url': settings.STOCK_UI_URL,
+    }
+    return render(request, 'admin_menu_principal.html', context)
 
 
 def admin_stock_view(request):

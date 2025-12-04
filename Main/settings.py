@@ -88,6 +88,7 @@ USE_SQLITE = os.getenv("USE_SQLITE", "true").lower() == "true"
 
 base_url_api = os.getenv("BASE_API_URL", build_public_url("/api/"))
 STOCK_API_BASE_URL = os.getenv("STOCK_API_BASE_URL", "http://localhost:8000")
+STOCK_UI_URL = os.getenv("STOCK_UI_URL", "http://localhost:8082")
 LOGISTICA_API_BASE_URL = os.getenv("LOGISTICA_API_BASE_URL", "http://localhost:8000")
 PRODUCTOS_API_BASE_URL = os.getenv(
     "PRODUCTOS_API_BASE_URL",
