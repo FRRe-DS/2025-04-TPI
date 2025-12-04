@@ -17,6 +17,7 @@ from apps.apis.carritoApi.models import Carrito
 from .client import obtener_cliente_logistica, obtener_cliente_stock
 from .models import Pedido, DireccionEnvio, DetallePedido
 from .serializer import PedidoSerializer
+from .services import obtener_metodo_envio_seguro
 
 
 logger = logging.getLogger(__name__)
@@ -49,8 +50,9 @@ class PedidoViewSet(viewsets.ModelViewSet):
     def _confirmar_con_servicios_externos(self, *, pedido: Pedido, request, tipo_transporte: str):
         """
         Orquesta la confirmacion del pedido contra servicios externos:
-        1) Crea el envio en logistica.
-        2) Reserva stock en el servicio de Stock.
+        1) Obtiene o crea un método de envío válido (nunca falla).
+        2) Crea el envio en logistica.
+        3) Reserva stock en el servicio de Stock.
 
         Devuelve (resultado, error_response). Si `error_response` no es None,
         debe devolverse directamente desde la vista.
@@ -82,6 +84,17 @@ class PedidoViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.warning(f"Error configurando token para Logística: {e}")
 
+        # ========== OBTENER MÉTODO DE ENVÍO VÁLIDO ==========
+        # Esta función es robusta: obtiene un método existente o crea uno por defecto
+        metodo_envio = obtener_metodo_envio_seguro(tipo_transporte)
+        logger.info(
+            f"Método de envío utilizado: {metodo_envio.nombre} "
+            f"(tipo: {metodo_envio.tipo_transporte}, costo: {metodo_envio.costo})"
+        )
+        
+        # Usar el tipo_transporte del método de envío confirmado
+        tipo_transporte_confirmado = metodo_envio.tipo_transporte
+
         detalles_pedido = list(pedido.detalles.all())
         productos_logistica = [
             {"id": detalle.producto_id, "quantity": detalle.cantidad}
@@ -92,15 +105,17 @@ class PedidoViewSet(viewsets.ModelViewSet):
             for detalle in detalles_pedido
         ]
 
+        # Asegurar que el total no sea 0
         if pedido.total == Decimal("0.00"):
             pedido.recalcular_total(guardar=True)
+            logger.info(f"Total del pedido recalculado: {pedido.total}")
 
         try:
             logger.info(
                 "Checkout -> logistics payload order=%s user=%s transport=%s addr=%s products=%s",
                 pedido.id,
                 pedido.usuario_id or (request.user.id if request.user.is_authenticated else 0),
-                tipo_transporte,
+                tipo_transporte_confirmado,
                 pedido.direccion_envio.generar_datos_logistica(),
                 productos_logistica,
             )
@@ -108,7 +123,7 @@ class PedidoViewSet(viewsets.ModelViewSet):
                 order_id=pedido.id,
                 user_id=pedido.usuario_id or (request.user.id if request.user.is_authenticated else 0),
                 delivery_address=pedido.direccion_envio.generar_datos_logistica(),
-                transport_type=tipo_transporte,
+                transport_type=tipo_transporte_confirmado,
                 products=productos_logistica,
             )
             logger.info("Checkout -> logistics response: %s", respuesta_envio)
@@ -140,7 +155,7 @@ class PedidoViewSet(viewsets.ModelViewSet):
             return (
                 None,
                 Response(
-                    {"detail": "La API de envÇðos no devolviÇü un identificador vÇ­lido."},
+                    {"detail": "La API de envíos no devolvió un identificador válido."},
                     status=status.HTTP_502_BAD_GATEWAY,
                 ),
             )
@@ -192,7 +207,7 @@ class PedidoViewSet(viewsets.ModelViewSet):
             return (
                 None,
                 Response(
-                    {"detail": "La API de stock no devolviÇü un identificador de reserva."},
+                    {"detail": "La API de stock no devolvió un identificador de reserva."},
                     status=status.HTTP_502_BAD_GATEWAY,
                 ),
             )

@@ -8,6 +8,32 @@ from django.db import models
 from django.utils import timezone
 
 
+class MetodoEnvio(models.Model):
+    """Método de envío disponible para pedidos."""
+
+    nombre = models.CharField(max_length=255, unique=True)
+    tipo_transporte = models.CharField(max_length=50, unique=True)
+    descripcion = models.TextField(blank=True)
+    costo = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(Decimal("0.00"))],
+    )
+    dias_estimados = models.CharField(max_length=50, default="3-5")
+    activo = models.BooleanField(default=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["nombre"]
+        verbose_name = "Método de Envío"
+        verbose_name_plural = "Métodos de Envío"
+
+    def __str__(self) -> str:
+        return f"{self.nombre} ({self.tipo_transporte})"
+
+
 class DireccionEnvio(models.Model):
     """Dirección de envío asociada a un pedido."""
 
