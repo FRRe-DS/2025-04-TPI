@@ -151,6 +151,59 @@ Mis Pedidos
         color: #666;
         margin-top: 10px;
     }
+
+    /* Estilos para el bloque de seguimiento */
+    .tracking-section {
+        grid-column: 1 / -1;
+        background: #e3f2fd;
+        padding: 20px;
+        border-radius: 8px;
+        border-left: 4px solid #2196f3;
+    }
+
+    .tracking-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #90caf9;
+    }
+
+    .tracking-icon {
+        font-size: 1.2rem;
+    }
+
+    .tracking-number {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #1565c0;
+        letter-spacing: 1px;
+    }
+
+    .tracking-badge {
+        margin-left: auto;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .tracking-badge.created { background: #fff3cd; color: #856404; }
+    .tracking-badge.in-transit { background: #cfe2ff; color: #084298; }
+    .tracking-badge.delivered { background: #d1e7dd; color: #0a3622; }
+
+    .tracking-details {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        font-size: 0.9rem;
+    }
+
+    .tracking-details .info-row {
+        margin-bottom: 5px;
+    }
 </style>
 {% endblock %}
 
@@ -193,6 +246,66 @@ Mis Pedidos
             </div>
 
             <div class="pedido-content">
+                
+                <!-- Bloque de Seguimiento (si existe) -->
+                {% if pedido.tracking_info %}
+                <div class="tracking-section">
+                    <div class="tracking-header">
+                        <span class="tracking-icon">🔍</span>
+                        <span style="font-weight: 600; font-size: 0.9rem;">N° Seguimiento</span>
+                        <span class="tracking-number">{{ pedido.tracking_info.tracking_number|default:pedido.referencia_envio }}</span>
+                        {% if pedido.tracking_info.status %}
+                        <span class="tracking-badge {{ pedido.tracking_info.status|lower }}">
+                            {{ pedido.tracking_info.status|upper }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="tracking-details">
+                        {% if pedido.tracking_info.status %}
+                        <div class="info-row">
+                            <span class="info-label">Estado Envío:</span>
+                            <span class="info-value">{{ pedido.tracking_info.status|upper }}</span>
+                        </div>
+                        {% endif %}
+                        {% if pedido.tracking_info.shipping_id %}
+                        <div class="info-row">
+                            <span class="info-label">ID Envío:</span>
+                            <span class="info-value">{{ pedido.tracking_info.shipping_id }}</span>
+                        </div>
+                        {% endif %}
+                        {% if pedido.tracking_info.transport_type.type %}
+                        <div class="info-row">
+                            <span class="info-label">Tipo Transporte:</span>
+                            <span class="info-value">{{ pedido.tracking_info.transport_type.type|upper }}</span>
+                        </div>
+                        {% endif %}
+                        {% if pedido.tracking_info.total_cost %}
+                        <div class="info-row">
+                            <span class="info-label">💰 Costo Envío:</span>
+                            <span class="info-value" style="color: #2e7d32; font-weight: 600;">${{ pedido.tracking_info.total_cost }}</span>
+                        </div>
+                        {% endif %}
+                        {% if pedido.tracking_info.estimated_delivery_at %}
+                        <div class="info-row">
+                            <span class="info-label">📅 Entrega Estimada:</span>
+                            <span class="info-value">{{ pedido.tracking_info.estimated_delivery_at }}</span>
+                        </div>
+                        {% endif %}
+                        {% if pedido.tracking_info.carrier_name %}
+                        <div class="info-row">
+                            <span class="info-label">Transportista:</span>
+                            <span class="info-value">{{ pedido.tracking_info.carrier_name }}</span>
+                        </div>
+                        {% endif %}
+                        {% if pedido.direccion_envio.telefono %}
+                        <div class="info-row">
+                            <span class="info-label">Teléfono:</span>
+                            <span class="info-value">{{ pedido.direccion_envio.telefono }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
                 
                 <!-- Información de envío -->
                 <div class="pedido-section">

@@ -149,7 +149,7 @@ def listar_pedidos(request):
     return render(request, 'pedidos/listar_pedidos.html', context)
 
 
-# ✅ NUEVA VISTA PARA LA PANTALLA DE PAGO EXITOSO
+# NUEVA VISTA PARA LA PANTALLA DE PAGO EXITOSO
 #@login_required   <-- Lo dejamos comentado por ahora para poder probarlo
 def pago_exitoso(request):
     """
@@ -157,7 +157,7 @@ def pago_exitoso(request):
     """
     return render(request, 'pedidos/pago_exitoso.html')
 
-# ✅ NUEVA VISTA PARA LA PANTALLA DE PAGO FALLIDO
+# NUEVA VISTA PARA LA PANTALLA DE PAGO FALLIDO
 # @login_required  <-- Lo dejamos comentado por ahora para poder probarlo
 def pago_fallido(request):
     """
@@ -168,9 +168,12 @@ def pago_fallido(request):
 
 def mis_pedidos(request):
     """
-    Muestra el historial de pedidos del usuario.
+    Muestra el historial de pedidos del usuario con información de seguimiento.
     """
     from apps.apis.pedidoApi.serializer import PedidoSerializer
+    from utils.apiCliente.logistica import LogisticsClient
+    from utils.apiCliente.base import APIError
+    from utils.keycloak import get_service_token_provider
     
     pedidos = []
     logger.info(f"Usuario autenticado: {request.user.is_authenticated}, Usuario: {request.user}")
@@ -182,6 +185,45 @@ def mis_pedidos(request):
         serializer = PedidoSerializer(pedidos_queryset, many=True, context={"request": request})
         pedidos = serializer.data
         logger.info(f"Pedidos serializados: {len(pedidos)}")
+        
+        # Obtener información de seguimiento para cada pedido que tenga referencia_envio
+        try:
+            log_client = LogisticsClient(
+                settings.LOGISTICA_API_BASE_URL,
+                token_provider=get_service_token_provider()
+            )
+            
+            for pedido_data in pedidos:
+                tracking_info = None
+                if pedido_data.get('referencia_envio'):
+                    try:
+                        # Consultar el seguimiento usando el shipping_id
+                        tracking_info = log_client.get_shipment(pedido_data['referencia_envio'])
+                        logger.info(f"Seguimiento obtenido para pedido {pedido_data['id']}: {tracking_info}")
+                        
+                        # Sincronizar estado del pedido con Logística
+                        if tracking_info and 'status' in tracking_info:
+                            try:
+                                pedido_obj = pedidos_queryset.get(id=pedido_data['id'])
+                                estado_actualizado = pedido_obj.sincronizar_estado_desde_logistica(tracking_info['status'])
+                                if estado_actualizado:
+                                    logger.info(f"Pedido {pedido_obj.id} sincronizado a estado: {pedido_obj.estado}")
+                                    # Actualizar el estado en los datos serializados
+                                    pedido_data['estado'] = pedido_obj.estado
+                            except Exception as e:
+                                logger.warning(f"Error al sincronizar estado del pedido {pedido_data['id']}: {e}")
+                                
+                    except APIError as e:
+                        logger.warning(f"No se pudo obtener seguimiento para pedido {pedido_data['id']}: {e}")
+                    except Exception as e:
+                        logger.exception(f"Error inesperado al obtener seguimiento para pedido {pedido_data['id']}: {e}")
+                
+                # Agregar info de tracking al pedido
+                pedido_data['tracking_info'] = tracking_info
+                
+        except Exception as e:
+            logger.exception(f"Error al inicializar cliente de logística: {e}")
+            
     else:
         logger.warning("Usuario no autenticado intentando ver pedidos")
 
