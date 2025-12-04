@@ -99,20 +99,25 @@ def inicio_view(request):
                 categoria = p.get("categoria_nombre") or p.get("categoria")
 
             # Obtener imagen principal de la lista de imágenes
-            imagen = ""
             imagenes_list = p.get("imagenes", [])
-            if imagenes_list and isinstance(imagenes_list, list):
-                # Buscar la imagen marcada como principal
-                for img in imagenes_list:
-                    if isinstance(img, dict) and img.get("esPrincipal"):
-                        imagen = img.get("url", "")
-                        break
-                # Si no hay principal, tomar la primera imagen disponible
-                if not imagen and len(imagenes_list) > 0:
-                    primera_img = imagenes_list[0]
-                    if isinstance(primera_img, dict):
-                        imagen = primera_img.get("url", "")
-                        print("esto es la url de la imagen",imagen)
+            imagen = ""
+            
+            if imagenes_list:
+                if isinstance(imagenes_list, dict):
+                    # Si es un solo diccionario, extraer la URL directamente
+                    imagen = imagenes_list.get("url", "")
+                elif isinstance(imagenes_list, list):
+                    # Si es una lista, buscar la imagen marcada como principal
+                    for img in imagenes_list:
+                        if isinstance(img, dict) and img.get("esPrincipal"):
+                            imagen = img.get("url", "")
+                            break
+                    # Si no hay principal, tomar la primera imagen disponible
+                    if not imagen and len(imagenes_list) > 0:
+                        primera_img = imagenes_list[0]
+                        if isinstance(primera_img, dict):
+                            imagen = primera_img.get("url", "")
+                            print("esto es la url de la imagen", imagen)
 
             precio = p.get("precio")
             try:
