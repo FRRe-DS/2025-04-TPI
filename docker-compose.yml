@@ -159,7 +159,7 @@ services:
     networks:
       - app_net
     restart: unless-stopped
-#FIN STOCK G2
+  #FIN STOCK G2
 
   # LOGÍSTICA G3
   mysql:

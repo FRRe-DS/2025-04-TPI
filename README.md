@@ -55,14 +55,14 @@ El sistema está desarrollado con **Django 5.1** e integra autenticación centra
 ┌──────────────────────────────────────────────────────────────┐
 │                     NGINX (Proxy Reverso)                    │
 │                    Puerto 80 - Balanceador                   │
-└─────────┬────────────────────┬────────────────────┬───────────┘
+└─────────┬────────────────────┬────────────────────┬──────────┘
           │                    │                    │
     ┌─────▼──────┐      ┌──────▼──────┐      ┌─────▼──────┐
     │   Django   │      │  G02 Stock  │      │ G03 Logís  │
     │  (Compras) │      │   Backend   │      │  Backend   │
     │ :8000      │      │   :4000     │      │  :3010     │
     └─────┬──────┘      └──────┬──────┘      └─────┬──────┘
-          │                    │                    │
+          │                    │                   │
     ┌─────▼──────┐      ┌──────▼──────┐      ┌─────▼──────┐
     │ PostgreSQL │      │  Supabase   │      │   MySQL    │
     │            │      │  (G02)      │      │ (Logística)│
@@ -70,7 +70,7 @@ El sistema está desarrollado con **Django 5.1** e integra autenticación centra
 
         ┌──────────────────────────────────────────┐
         │   KEYCLOAK (Autenticación Centralizada)  │
-        │            :8080                        │
+        │             :8080                        │
         └──────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────┐
@@ -93,14 +93,10 @@ El sistema está desarrollado con **Django 5.1** e integra autenticación centra
 - Crear pedidos desde el carrito
 - Seguimiento de estado de pedidos (Borrador → Pendiente → Confirmado → Cancelado)
 - Reserva automática de stock
-- Notificaciones por email en cada cambio de estado
-- Referencias de reserva y envío
 
 ### 👥 Administración de Usuarios
 - Autenticación integrada con Keycloak
 - Roles y permisos centralizados
-- Perfil de usuario personalizado
-- Soporte para múltiples métodos de login
 
 ### 🔐 Seguridad
 - Autenticación OAuth2/OpenID Connect
@@ -111,7 +107,6 @@ El sistema está desarrollado con **Django 5.1** e integra autenticación centra
 ### 📊 Panel Administrativo
 - Dashboard con KPIs en tiempo real
 - Gestión de pedidos y carritos
-- Monitoreo de transacciones
 - Redirección centralizada a módulos de otros grupos
 
 ### 🔗 Integración de APIs
@@ -138,7 +133,7 @@ El sistema está desarrollado con **Django 5.1** e integra autenticación centra
 | **Keycloak** | 23.0.6 - Servidor de autenticación centralizado |
 | **django-allauth** | Autenticación social (Google, GitHub, etc.) |
 | **djangorestframework-simplejwt** | Manejo de tokens JWT |
-| **python-keycloak** | Integración con Keycloak |
+| **PyJWT** | Validación de tokens JWT de Keycloak |
 
 ### Frontend
 | Tecnología | Propósito |
@@ -235,24 +230,23 @@ docker-compose logs -f django
 docker-compose down
 ```
 
-**Acceso:** http://localhost:8000
+**Acceso:** http://localhost
 
 ### Acceso a la Aplicación
 
 | Componente | URL | Descripción |
 |-----------|-----|-----------|
-| **Frontend** | http://localhost:8000 | Aplicación web principal |
-| **Admin Panel** | http://localhost:8000/administracion | Panel administrativo |
-| **API REST** | http://localhost:8000/api/ | APIs REST |
-| **Swagger/OpenAPI** | http://localhost:8000/api/docs/ | Documentación interactiva |
-| **Django Admin** | http://localhost:8000/admin | Panel admin de Django |
+| **Frontend** | http://localhost/compras | Aplicación web principal |
+| **Admin Panel** | http://localhost/compras/administracion | Panel administrativo |
+| **API REST** | http://localhost/compras/api/ | APIs REST |
+| **Swagger/OpenAPI** | http://localhost/compras/api/docs/ | Documentación interactiva |
+| **Django Admin** | http://localhost/compras/admin | Panel admin de Django |
 | **Keycloak** | http://localhost:8080 | Servidor de autenticación |
 | **Stock Frontend (G02)** | http://localhost:3000 | Frontend de inventario |
 
 ### Scripts Disponibles (Windows)
 
 ```bash
-run.bat                    # Ejecutar servidor (desarrollo local)
 makemigrations.bat         # Crear migraciones
 migrate.bat               # Aplicar migraciones
 up-image.bat             # Construir imagen Docker
@@ -398,13 +392,6 @@ reserva = client.reservar_stock(
     ]
 )
 
-# Liberar stock
-liberar = client.liberar_stock(
-    idReserva=42,
-    usuarioId=5,
-    motivo="Pedido cancelado"
-)
-```
 
 ### 2. Logística API (Grupo 03)
 
@@ -448,41 +435,13 @@ USE_MOCK_APIS = True
 
 ### Funcionalidades
 
-#### 1. Dashboard Principal
-- KPIs en tiempo real (ingresos, pedidos, usuarios)
-- Últimas transacciones
-- Gráficos de rendimiento
-
-#### 2. Gestión de Pedidos
-- Listado de todos los pedidos
-- Filtrar por estado, usuario, fecha
-- Ver detalles completos del pedido
-- Cambiar estado del pedido
-- Descargar factura/comprobante
-
-#### 3. Gestión de Carritos
-- Ver carritos activos de usuarios
-- Análisis de abandono de carrito
-- Estadísticas de compra
-
-#### 4. Menú de Módulos
+#### Menú de Módulos
 - **Stock:** Redirecciona a `http://localhost:3000` (Frontend Stock G02)
 - **Logística:** Redirecciona a módulo de Logística (G03)
 - **Compras:** Dashboard actual
 
 ### Panel Admin Actualizado
 
-**Cambio Reciente:** El botón "Stock" del panel de administración ahora redirecciona correctamente al frontend del Grupo 02 (Stock) en `http://localhost:3000`.
-
-```html
-<!-- Antes -->
-<a href="{% url 'admin_stock' %}">Stock</a>
-
-<!-- Ahora -->
-<a href="http://localhost:3000" target="_blank">Stock</a>
-```
-
----
 
 ## 🧪 Pruebas
 
@@ -509,14 +468,6 @@ python -m pytest tests/test_checkout_flow.py -v
 | `test_logistics_client.py` | Integración con Logística |
 | `test_integracion_apis.py` | Integración entre servicios |
 
-### Coverage
-
-```bash
-# Generar reporte de cobertura
-python -m pytest --cov=apps tests/
-```
-
----
 
 ## 🐳 Despliegue con Docker
 
@@ -542,7 +493,7 @@ Busca este mensaje en los logs:
 django_1 | INFO:     Application startup complete
 ```
 
-Una vez que veas eso, accede a: **http://localhost:8000**
+Una vez que veas eso, accede a: **http://localhost/compras/**
 
 ### Construcción de Imagen
 
@@ -675,28 +626,7 @@ docker-compose restart keycloak
 
 ---
 
-## 📝 Convenciones de Código
-
-### Naming Conventions
-
-```python
-# Variables
-usuario_id = 1
-producto_nombre = "Laptop"
-
-# Funciones
-def obtener_pedido(pedido_id):
-    pass
-
-# Clases
-class CarritoCompras:
-    pass
-
-# Constantes
-LIMITE_ITEMS_CARRITO = 100
-```
-
-### Estructura de Respuestas API
+## Estructura de Respuestas API (logs)
 
 ```json
 {
@@ -754,12 +684,12 @@ Este proyecto forma parte del Proyecto Integrador 2025 de la Facultad Tecnológi
       - ACOSTA, Santiago
       - AGUIRRE, Joaquin
       - CETTOUR, Ivo
-      - DUARTE, Hugo
+      - DUARTE, Hugo Emmanuel
       - MIRANDA, Ulises
       - PETRACCARO, Maximiliano
       - VAZQUEZ, Maximo
       - SVEDA, Juan Pablo
-      - ZARACHO, Emanuel
+      - ZARACHO, Cesar Emanuel
       - ZARATE, Francisco
 ---
 
